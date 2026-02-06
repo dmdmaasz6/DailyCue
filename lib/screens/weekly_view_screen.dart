@@ -376,6 +376,7 @@ class _WeeklyActivityRow extends StatelessWidget {
     final timeStr = use24Hour
         ? TimeUtils.format24h(activity.timeOfDay)
         : TimeUtils.format12h(activity.timeOfDay);
+    final catColor = ActivityCategories.color(activity.category);
 
     return InkWell(
       onTap: onTap,
@@ -399,7 +400,7 @@ class _WeeklyActivityRow extends StatelessWidget {
                 timeStr,
                 style: AppTypography.monoSmall.copyWith(
                   color: activity.enabled
-                      ? AppColors.primary
+                      ? catColor
                       : AppColors.textTertiary,
                 ),
               ),
@@ -410,7 +411,7 @@ class _WeeklyActivityRow extends StatelessWidget {
               margin: const EdgeInsets.only(right: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: activity.enabled
-                    ? AppColors.primary
+                    ? catColor
                     : AppColors.disabled,
                 shape: BoxShape.circle,
               ),
@@ -443,7 +444,7 @@ class _WeeklyActivityRow extends StatelessWidget {
                   Icons.notifications_outlined,
                   size: AppIconSizes.xs,
                   color: activity.enabled
-                      ? AppColors.primary
+                      ? catColor
                       : AppColors.textTertiary,
                 ),
               ),

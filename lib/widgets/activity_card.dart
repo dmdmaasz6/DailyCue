@@ -6,6 +6,8 @@ import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
 import '../utils/time_utils.dart';
 
+
+
 class ActivityCard extends StatelessWidget {
   final Activity activity;
   final VoidCallback onTap;
@@ -27,6 +29,7 @@ class ActivityCard extends StatelessWidget {
         ? TimeUtils.format24h(activity.timeOfDay)
         : TimeUtils.format12h(activity.timeOfDay);
     final repeatStr = TimeUtils.repeatSummary(activity.repeatDays);
+    final catColor = ActivityCategories.color(activity.category);
 
     return AnimatedOpacity(
       opacity: activity.enabled ? 1.0 : 0.55,
@@ -49,20 +52,20 @@ class ActivityCard extends StatelessWidget {
                     timeStr,
                     style: AppTypography.mono.copyWith(
                       color: activity.enabled
-                          ? AppColors.primary
+                          ? catColor
                           : AppColors.disabled,
                     ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
 
-                // Vertical accent line
+                // Vertical accent line (category color)
                 Container(
                   width: 3,
                   height: 44,
                   decoration: BoxDecoration(
                     color: activity.enabled
-                        ? AppColors.primary.withOpacity(0.3)
+                        ? catColor.withOpacity(0.4)
                         : AppColors.disabled.withOpacity(0.3),
                     borderRadius: AppRadii.borderRadiusFull,
                   ),
@@ -74,13 +77,55 @@ class ActivityCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        activity.title,
-                        style: AppTypography.headingSmall.copyWith(
-                          color: activity.enabled
-                              ? AppColors.textPrimary
-                              : AppColors.disabledText,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              activity.title,
+                              style: AppTypography.headingSmall.copyWith(
+                                color: activity.enabled
+                                    ? AppColors.textPrimary
+                                    : AppColors.disabledText,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: activity.enabled
+                                  ? catColor.withOpacity(0.1)
+                                  : AppColors.disabled.withOpacity(0.1),
+                              borderRadius: AppRadii.borderRadiusFull,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  ActivityCategories.icons[activity.category] ??
+                                      Icons.circle_outlined,
+                                  size: 10,
+                                  color: activity.enabled
+                                      ? catColor
+                                      : AppColors.disabled,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  ActivityCategories.labels[activity.category] ??
+                                      'General',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    fontSize: 10,
+                                    color: activity.enabled
+                                        ? catColor
+                                        : AppColors.disabled,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Row(
@@ -99,7 +144,7 @@ class ActivityCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: isActive
                                       ? (activity.enabled
-                                          ? AppColors.primary
+                                          ? catColor
                                           : AppColors.disabled)
                                       : AppColors.border,
                                   shape: BoxShape.circle,
@@ -132,7 +177,7 @@ class ActivityCard extends StatelessWidget {
                               Icons.notifications_outlined,
                               size: AppIconSizes.xs,
                               color: activity.enabled
-                                  ? AppColors.primary
+                                  ? catColor
                                   : AppColors.textTertiary,
                             ),
                           ],
