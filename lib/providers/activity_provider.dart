@@ -134,8 +134,39 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Update the home screen widget
   Future<void> _updateWidget() async {
-    final nextActivity = getNextActivity();
-    await _widgetService.updateWidget(nextActivity);
+    final now = DateTime.now();
+    final nowMinutes = now.hour * 60 + now.minute;
+    final todayWeekday = now.weekday;
+
+    // Get today's activities
+    final todayActivities = _activities
+        .where((a) =>
+            a.enabled &&
+            (a.repeatDays.isEmpty || a.repeatDays.contains(todayWeekday)))
+        .toList();
+
+    // Calculate stats
+    final completedCount = todayActivities.where((a) => a.isCompletedToday()).length;
+    final totalCount = todayActivities.length;
+    final remainingCount = totalCount - completedCount;
+    final allCompleted = totalCount > 0 && completedCount == totalCount;
+
+    // Find next upcoming activity
+    Activity? nextActivity;
+    for (final a in todayActivities) {
+      if (a.timeOfDay.hour * 60 + a.timeOfDay.minute >= nowMinutes) {
+        nextActivity = a;
+        break;
+      }
+    }
+
+    await _widgetService.updateWidget(
+      nextActivity,
+      completedCount: completedCount,
+      remainingCount: remainingCount,
+      totalCount: totalCount,
+      allCompleted: allCompleted,
+    );
   }
 
   void _reindex() {
