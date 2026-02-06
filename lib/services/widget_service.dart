@@ -23,10 +23,33 @@ class WidgetService {
     }
   }
 
-  /// Update the widget with the next activity
-  Future<void> updateWidget(Activity? nextActivity) async {
+  /// Update the widget with the next activity and stats
+  Future<void> updateWidget(
+    Activity? nextActivity, {
+    int completedCount = 0,
+    int remainingCount = 0,
+    int totalCount = 0,
+    bool allCompleted = false,
+  }) async {
     try {
-      if (nextActivity != null) {
+      // Save stats data
+      await HomeWidget.saveWidgetData<int>('completed_count', completedCount);
+      await HomeWidget.saveWidgetData<int>('remaining_count', remainingCount);
+      await HomeWidget.saveWidgetData<int>('total_count', totalCount);
+      await HomeWidget.saveWidgetData<bool>('all_completed', allCompleted);
+
+      if (allCompleted && totalCount > 0) {
+        // All activities completed - show congratulatory message
+        await HomeWidget.saveWidgetData<String>('activity_title', 'All Done!');
+        await HomeWidget.saveWidgetData<String>('activity_time', '');
+        await HomeWidget.saveWidgetData<String>(
+          'activity_description',
+          "You've completed all your activities for today!",
+        );
+        await HomeWidget.saveWidgetData<String>('activity_category', 'general');
+        await HomeWidget.saveWidgetData<String>('activity_countdown', '');
+        await HomeWidget.saveWidgetData<bool>('has_activity', false);
+      } else if (nextActivity != null) {
         final now = DateTime.now();
         final activityTime = DateTime(
           now.year,

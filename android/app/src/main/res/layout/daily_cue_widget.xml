@@ -4,72 +4,291 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@drawable/widget_background">
+    android:id="@+id/widget_container">
 
+    <!-- Normal Activity View -->
     <LinearLayout
+        android:id="@+id/widget_normal_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingBottom="8dp">
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/widget_title_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="UP NEXT"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"/>
+
+            <TextView
+                android:id="@+id/widget_countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="In 30 min"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:background="#330D7377"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:textStyle="bold"/>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/widget_title_label"
-            android:layout_width="0dp"
+            android:id="@+id/widget_activity_title"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="UP NEXT"
-            android:textSize="12sp"
-            android:textColor="#80FFFFFF"
-            android:textStyle="bold"
-            android:letterSpacing="0.1"/>
-
-        <TextView
-            android:id="@+id/widget_countdown"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="In 30 min"
-            android:textSize="12sp"
+            android:text="Activity Name"
+            android:textSize="18sp"
             android:textColor="#FFFFFF"
-            android:background="#330D7377"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/widget_activity_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="08:30"
+            android:textSize="16sp"
+            android:textColor="#CCFFFFFF"
+            android:fontFamily="monospace"
+            android:paddingTop="4dp"/>
+
+        <TextView
+            android:id="@+id/widget_activity_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Description"
+            android:textSize="13sp"
+            android:textColor="#99FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:textStyle="bold"/>
+            android:visibility="gone"/>
+
+        <!-- Stats Section -->
+        <LinearLayout
+            android:id="@+id/widget_stats_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="12dp"
+            android:visibility="gone">
+
+            <!-- Motivational Message -->
+            <TextView
+                android:id="@+id/widget_motivation_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Keep going! 💪"
+                android:textSize="13sp"
+                android:textColor="#E6FFFFFF"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:paddingBottom="8dp"/>
+
+            <!-- Progress Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#20FFFFFF"
+                android:padding="10dp">
+
+                <!-- Progress Label -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/widget_progress_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Progress"
+                        android:textSize="11sp"
+                        android:textColor="#CCFFFFFF"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/widget_progress_percentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="13sp"
+                        android:textColor="#4ADE80"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/widget_progress_bar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="#4ADE80"
+                    android:progressBackgroundTint="#33000000"
+                    android:indeterminate="false"/>
+
+                <!-- Stats Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="10dp"
+                    android:gravity="center">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="✓ "
+                            android:textSize="14sp"
+                            android:textColor="#4ADE80"/>
+
+                        <TextView
+                            android:id="@+id/widget_completed_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textColor="#4ADE80"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" done"
+                            android:textSize="11sp"
+                            android:textColor="#CCFFFFFF"
+                            android:paddingStart="2dp"/>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="20dp"
+                        android:background="#40FFFFFF"/>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="○ "
+                            android:textSize="14sp"
+                            android:textColor="#FFFFFF"/>
+
+                        <TextView
+                            android:id="@+id/widget_remaining_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" to go"
+                            android:textSize="11sp"
+                            android:textColor="#CCFFFFFF"
+                            android:paddingStart="2dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_activity_title"
+    <!-- Congratulatory View -->
+    <LinearLayout
+        android:id="@+id/widget_congrats_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Activity Name"
-        android:textSize="18sp"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:maxLines="2"
-        android:ellipsize="end"/>
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
 
-    <TextView
-        android:id="@+id/widget_activity_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="08:30"
-        android:textSize="16sp"
-        android:textColor="#CCFFFFFF"
-        android:fontFamily="monospace"
-        android:paddingTop="4dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎉"
+            android:textSize="48sp"
+            android:paddingBottom="8dp"/>
 
-    <TextView
-        android:id="@+id/widget_activity_description"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Description"
-        android:textSize="13sp"
-        android:textColor="#99FFFFFF"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:paddingTop="4dp"
-        android:visibility="gone"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="All Done!"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="You've completed all your activities for today!"
+            android:textSize="13sp"
+            android:textColor="#E6FFFFFF"
+            android:textAlignment="center"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#20FFFFFF"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭐"
+                android:textSize="16sp"
+                android:paddingEnd="4dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Great job!"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>
