@@ -108,11 +108,16 @@ class ActivityCard extends StatelessWidget {
                             );
                           }),
                           const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            repeatStr,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textTertiary,
-                              fontSize: 11,
+                          Flexible(
+                            child: Text(
+                              repeatStr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: false,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textTertiary,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                           if (activity.alarmEnabled) ...[
