@@ -17,8 +17,10 @@ class ActivityViewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final activityProvider = context.watch<ActivityProvider>();
-    final categoryColor = ActivityCategories.color(activity.category);
-    final isCompletedToday = activity.isCompletedToday();
+    // Get the latest activity state from the provider
+    final currentActivity = activityProvider.getActivity(activity.id) ?? activity;
+    final categoryColor = ActivityCategories.color(currentActivity.category);
+    final isCompletedToday = currentActivity.isCompletedToday();
 
     return Scaffold(
       appBar: AppBar(

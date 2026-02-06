@@ -170,7 +170,7 @@ class DashboardScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          ActivityViewScreen(activity: nextUp),
+                          ActivityViewScreen(activity: nextUp!),
                     ),
                   ),
                 ),

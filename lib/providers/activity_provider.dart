@@ -89,6 +89,8 @@ class ActivityProvider extends ChangeNotifier {
     final index = _activities.indexWhere((a) => a.id == id);
     if (index == -1) return;
     final activity = _activities[index];
+    // Prevent duplicate completions on the same day
+    if (activity.isCompletedToday()) return;
     final updated = activity.markCompleted(completionTime: completionTime);
     _activities[index] = updated;
     await _storage.saveActivity(updated);

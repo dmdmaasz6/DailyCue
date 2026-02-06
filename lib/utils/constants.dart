@@ -98,6 +98,10 @@ class ActivityCategories {
 
   static Color color(String category) => _colors[category] ?? _colors[general]!;
 
+  static String label(String category) => labels[category] ?? labels[general]!;
+
+  static IconData icon(String category) => icons[category] ?? icons[general]!;
+
   static const Map<String, Color> _colors = {
     general: Color(0xFF0D7377),  // teal (primary)
     health: Color(0xFFE5484D),   // red
