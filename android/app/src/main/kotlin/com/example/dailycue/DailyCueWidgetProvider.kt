@@ -69,6 +69,27 @@ class DailyCueWidgetProvider : AppWidgetProvider() {
                             setViewVisibility(R.id.widget_stats_section, android.view.View.VISIBLE)
                             setTextViewText(R.id.widget_completed_count, completedCount.toString())
                             setTextViewText(R.id.widget_remaining_count, remainingCount.toString())
+
+                            // Calculate progress percentage
+                            val progressPercentage = if (totalCount > 0) {
+                                (completedCount.toFloat() / totalCount * 100).toInt()
+                            } else 0
+                            setTextViewText(R.id.widget_progress_percentage, "$progressPercentage%")
+
+                            // Set motivational message based on progress
+                            val motivationMessage = when {
+                                progressPercentage == 0 -> "Let's get started! 🚀"
+                                progressPercentage < 30 -> "Great start! Keep going! 💪"
+                                progressPercentage < 50 -> "You're making progress! 🌟"
+                                progressPercentage < 75 -> "More than halfway there! 🔥"
+                                progressPercentage < 100 -> "Almost done! You got this! ⚡"
+                                else -> "All done! 🎉"
+                            }
+                            setTextViewText(R.id.widget_motivation_text, motivationMessage)
+
+                            // Update progress bar
+                            setProgressBar(R.id.widget_progress_bar, 100, progressPercentage, false)
+
                         } else {
                             setViewVisibility(R.id.widget_stats_section, android.view.View.GONE)
                         }
