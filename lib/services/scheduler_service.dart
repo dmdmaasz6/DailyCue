@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/activity.dart';
@@ -39,7 +40,7 @@ class SchedulerService {
   /// Cancel all notifications for a single activity.
   Future<void> cancelActivity(Activity activity) async {
     final baseId = _baseNotificationId(activity.id);
-    final days = activity.isDaily ? [1, 2, 3, 4, 5, 6, 7] : activity.repeatDays;
+    final days = activity.isDaily ? [0] : activity.repeatDays;
 
     for (final day in days) {
       final dayBase = baseId * 10 + day;
@@ -53,8 +54,54 @@ class SchedulerService {
   }
 
   Future<void> _scheduleActivity(Activity activity) async {
-    final days = activity.isDaily ? [1, 2, 3, 4, 5, 6, 7] : activity.repeatDays;
     final baseId = _baseNotificationId(activity.id);
+    final now = tz.TZDateTime.now(tz.local);
+
+    if (activity.isDaily) {
+      final dayBase = baseId * 10; // daily slot
+      final scheduledDate = _nextDateTimeForTime(activity.timeOfDay);
+
+      if (activity.alarmEnabled) {
+        await _notificationService.scheduleAlarm(
+          notificationId: dayBase,
+          title: activity.title,
+          body: activity.description ?? 'Time for: ${activity.title}',
+          scheduledDate: scheduledDate,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: '${activity.id}|alarm',
+        );
+      } else {
+        await _notificationService.scheduleReminder(
+          notificationId: dayBase,
+          title: activity.title,
+          body: activity.description ?? 'Time for: ${activity.title}',
+          scheduledDate: scheduledDate,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: '${activity.id}|due',
+        );
+      }
+
+      for (int i = 0; i < activity.earlyReminderOffsets.length; i++) {
+        final offset = activity.earlyReminderOffsets[i];
+        var reminderTime = scheduledDate.subtract(Duration(minutes: offset));
+        if (reminderTime.isBefore(now)) {
+          reminderTime = reminderTime.add(const Duration(days: 1));
+        }
+
+        await _notificationService.scheduleReminder(
+          notificationId: dayBase + (i + 1) * 100,
+          title: '${activity.title} in $offset min',
+          body: activity.description ?? 'Coming up: ${activity.title}',
+          scheduledDate: reminderTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: '${activity.id}|reminder|$offset',
+        );
+      }
+
+      return;
+    }
+
+    final days = activity.repeatDays;
 
     for (final day in days) {
       final dayBase = baseId * 10 + day;
@@ -67,6 +114,7 @@ class SchedulerService {
           title: activity.title,
           body: activity.description ?? 'Time for: ${activity.title}',
           scheduledDate: scheduledDate,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           payload: '${activity.id}|alarm',
         );
       } else {
@@ -76,6 +124,7 @@ class SchedulerService {
           title: activity.title,
           body: activity.description ?? 'Time for: ${activity.title}',
           scheduledDate: scheduledDate,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           payload: '${activity.id}|due',
         );
       }
@@ -92,11 +141,30 @@ class SchedulerService {
             title: '${activity.title} in $offset min',
             body: activity.description ?? 'Coming up: ${activity.title}',
             scheduledDate: reminderTime,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
             payload: '${activity.id}|reminder|$offset',
           );
         }
       }
     }
+  }
+
+  tz.TZDateTime _nextDateTimeForTime(TimeOfDay time) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    return scheduled;
   }
 
   /// Handle snooze action for an activity.

@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -55,6 +59,8 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           _SectionHeader(title: 'NOTIFICATIONS'),
+          const _NotificationHealthTiles(),
+          const _NotificationDiagnosticsTiles(),
           ListTile(
             title: Text('Reschedule all notifications',
                 style: AppTypography.bodyLarge),
@@ -202,6 +208,283 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       ),
+    );
+  }
+}
+
+class _NotificationHealthTiles extends StatefulWidget {
+  const _NotificationHealthTiles();
+
+  @override
+  State<_NotificationHealthTiles> createState() =>
+      _NotificationHealthTilesState();
+}
+
+class _NotificationHealthTilesState extends State<_NotificationHealthTiles>
+    with WidgetsBindingObserver {
+  PermissionStatus? _notificationStatus;
+  PermissionStatus? _exactAlarmStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshStatuses();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshStatuses();
+    }
+  }
+
+  Future<void> _refreshStatuses() async {
+    if (!Platform.isAndroid) return;
+    final notificationStatus = await Permission.notification.status;
+    final exactAlarmStatus = await Permission.scheduleExactAlarm.status;
+    if (!mounted) return;
+    setState(() {
+      _notificationStatus = notificationStatus;
+      _exactAlarmStatus = exactAlarmStatus;
+    });
+  }
+
+  String _statusLabel(PermissionStatus? status) {
+    if (status == null) return 'Checking...';
+    if (status.isGranted) return 'Allowed';
+    if (status.isLimited) return 'Limited';
+    if (status.isPermanentlyDenied) return 'Blocked';
+    return 'Not allowed';
+  }
+
+  IconData _statusIcon(PermissionStatus? status) {
+    if (status == null) return Icons.hourglass_empty_rounded;
+    if (status.isGranted) return Icons.check_circle_rounded;
+    return Icons.warning_rounded;
+  }
+
+  Color _statusColor(PermissionStatus? status) {
+    if (status == null) return AppColors.textTertiary;
+    if (status.isGranted) return AppColors.primary;
+    return AppColors.error;
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.notification.request();
+    }
+    await _refreshStatuses();
+  }
+
+  Future<void> _requestExactAlarmPermission() async {
+    final status = await Permission.scheduleExactAlarm.status;
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.scheduleExactAlarm.request();
+    }
+    await _refreshStatuses();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Platform.isAndroid) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        ListTile(
+          title: Text('Notification permission',
+              style: AppTypography.bodyLarge),
+          subtitle: Text(_statusLabel(_notificationStatus),
+              style: AppTypography.bodySmall),
+          trailing: Icon(
+            _statusIcon(_notificationStatus),
+            color: _statusColor(_notificationStatus),
+          ),
+          onTap: _requestNotificationPermission,
+        ),
+        ListTile(
+          title: Text('Exact alarms permission',
+              style: AppTypography.bodyLarge),
+          subtitle: Text(_statusLabel(_exactAlarmStatus),
+              style: AppTypography.bodySmall),
+          trailing: Icon(
+            _statusIcon(_exactAlarmStatus),
+            color: _statusColor(_exactAlarmStatus),
+          ),
+          onTap: _requestExactAlarmPermission,
+        ),
+        const Divider(),
+      ],
+    );
+  }
+}
+
+class _NotificationDiagnosticsTiles extends StatefulWidget {
+  const _NotificationDiagnosticsTiles();
+
+  @override
+  State<_NotificationDiagnosticsTiles> createState() =>
+      _NotificationDiagnosticsTilesState();
+}
+
+class _NotificationDiagnosticsTilesState
+    extends State<_NotificationDiagnosticsTiles>
+    with WidgetsBindingObserver {
+  final NotificationService _notificationService = NotificationService();
+  int? _pendingCount;
+  bool? _exactAlarmsAllowed;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshPending();
+    _refreshExactAlarms();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshPending();
+      _refreshExactAlarms();
+    }
+  }
+
+  Future<void> _refreshPending() async {
+    final count = await _notificationService.pendingCount();
+    if (!mounted) return;
+    setState(() {
+      _pendingCount = count;
+    });
+  }
+
+  Future<void> _refreshExactAlarms() async {
+    final allowed = await _notificationService.refreshExactAlarmsAllowed();
+    if (!mounted) return;
+    setState(() {
+      _exactAlarmsAllowed = allowed;
+    });
+  }
+
+  Future<void> _sendTestNotification() async {
+    await _notificationService.showTestNotification();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Test notification sent.')),
+    );
+  }
+
+  Future<void> _sendTestAlarm() async {
+    await _notificationService.scheduleTestAlarm(
+      const Duration(seconds: 30),
+    );
+    await _refreshPending();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Test alarm scheduled in 30 seconds.')),
+    );
+  }
+
+  Future<void> _sendAlarmNow() async {
+    await _notificationService.showTestAlarmNow();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Immediate alarm sent.')),
+    );
+  }
+
+  Future<void> _sendTestScheduledReminder() async {
+    await _notificationService.scheduleTestReminder(
+      const Duration(seconds: 30),
+    );
+    await _refreshPending();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Scheduled reminder set for 30 seconds.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Platform.isAndroid) {
+      return const SizedBox.shrink();
+    }
+
+    final pendingLabel = _pendingCount == null
+        ? 'Checking...'
+        : '$_pendingCount scheduled';
+    final exactLabel = _exactAlarmsAllowed == null
+        ? 'Checking...'
+        : (_exactAlarmsAllowed! ? 'Allowed' : 'Blocked');
+
+    return Column(
+      children: [
+        ListTile(
+          title: Text('Exact alarm capability',
+              style: AppTypography.bodyLarge),
+          subtitle: Text(exactLabel, style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.policy_rounded),
+          onTap: _refreshExactAlarms,
+        ),
+        ListTile(
+          title: Text('Pending scheduled notifications',
+              style: AppTypography.bodyLarge),
+          subtitle: Text(pendingLabel, style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.refresh_rounded),
+          onTap: _refreshPending,
+        ),
+        ListTile(
+          title: Text('Send test notification',
+              style: AppTypography.bodyLarge),
+          subtitle: Text('Immediate popup', style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.send_rounded),
+          onTap: _sendTestNotification,
+        ),
+        ListTile(
+          title: Text('Send scheduled reminder',
+              style: AppTypography.bodyLarge),
+          subtitle: Text('Reminder in 30 seconds',
+              style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.notifications_active_rounded),
+          onTap: _sendTestScheduledReminder,
+        ),
+        ListTile(
+          title: Text('Send alarm now', style: AppTypography.bodyLarge),
+          subtitle: Text('Immediate alarm channel test',
+              style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.notification_important_rounded),
+          onTap: _sendAlarmNow,
+        ),
+        ListTile(
+          title: Text('Send test alarm',
+              style: AppTypography.bodyLarge),
+          subtitle:
+              Text('Alarm in 30 seconds', style: AppTypography.bodySmall),
+          trailing: const Icon(Icons.alarm_rounded),
+          onTap: _sendTestAlarm,
+        ),
+        const Divider(),
+      ],
     );
   }
 }
