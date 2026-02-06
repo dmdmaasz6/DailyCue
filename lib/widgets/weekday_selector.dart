@@ -20,15 +20,13 @@ class WeekdaySelector extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Text('Repeat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text('Repeat', style: AppTypography.headingSmall),
             const Spacer(),
             TextButton(
               onPressed: () {
                 if (_isDaily) {
-                  // Switch to weekdays only
                   onChanged([1, 2, 3, 4, 5]);
                 } else {
-                  // Switch to daily
                   onChanged([]);
                 }
               },
@@ -36,11 +34,11 @@ class WeekdaySelector extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(7, (index) {
-            final day = index + 1; // 1=Mon..7=Sun
+            final day = index + 1;
             final isSelected = _isDaily || selectedDays.contains(day);
             return _DayChip(
               label: AppConstants.weekdayLabels[day]!,
@@ -64,7 +62,6 @@ class WeekdaySelector extends StatelessWidget {
       current.add(day);
     }
 
-    // If all days selected or none selected, treat as daily
     if (current.length == 7 || current.isEmpty) {
       onChanged([]);
     } else {
@@ -89,20 +86,22 @@ class _DayChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 40,
-        height: 40,
+        duration: AppDurations.fast,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.grey[200],
+          color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: 1.5,
+          ),
         ),
         alignment: Alignment.center,
         child: Text(
           label.substring(0, 2),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.grey[600],
+          style: AppTypography.labelMedium.copyWith(
+            color: isSelected ? AppColors.textOnPrimary : AppColors.textSecondary,
           ),
         ),
       ),

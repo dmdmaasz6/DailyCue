@@ -35,12 +35,15 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
     super.initState();
     final a = widget.activity;
     _titleController = TextEditingController(text: a?.title ?? '');
-    _descriptionController = TextEditingController(text: a?.description ?? '');
+    _descriptionController =
+        TextEditingController(text: a?.description ?? '');
     _selectedTime = a?.timeOfDay ?? TimeOfDay.now();
     _repeatDays = a != null ? List.from(a.repeatDays) : [];
-    _reminderOffsets = a != null ? List.from(a.earlyReminderOffsets) : [5];
+    _reminderOffsets =
+        a != null ? List.from(a.earlyReminderOffsets) : [5];
     _alarmEnabled = a?.alarmEnabled ?? true;
-    _snoozeDuration = a?.snoozeDurationMinutes ?? AppConstants.defaultSnoozeDuration;
+    _snoozeDuration =
+        a?.snoozeDurationMinutes ?? AppConstants.defaultSnoozeDuration;
   }
 
   @override
@@ -57,26 +60,31 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Activity' : 'New Activity'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           if (_isEditing)
             IconButton(
-              icon: const Icon(Icons.delete),
+              icon: const Icon(Icons.delete_outline_rounded),
               onPressed: _delete,
               tooltip: 'Delete activity',
             ),
-          TextButton(
-            onPressed: _save,
-            child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 16)),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: TextButton(
+              onPressed: _save,
+              child: Text(
+                'Save',
+                style: AppTypography.labelLarge.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.screenPadding,
           children: [
             // Title
             TextFormField(
@@ -84,7 +92,6 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
               decoration: const InputDecoration(
                 labelText: 'Activity Title',
                 hintText: 'e.g., Leave home, Brush teeth',
-                border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.sentences,
               validator: (value) {
@@ -94,7 +101,7 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Description
             TextFormField(
@@ -102,41 +109,54 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
               decoration: const InputDecoration(
                 labelText: 'Description (optional)',
                 hintText: 'e.g., School drop-off',
-                border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.sentences,
               maxLines: 2,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Time picker
             _buildTimePicker(settings),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Weekday selector
             WeekdaySelector(
               selectedDays: _repeatDays,
               onChanged: (days) => setState(() => _repeatDays = days),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Early reminders
             ReminderOffsetPicker(
               selectedOffsets: _reminderOffsets,
-              onChanged: (offsets) => setState(() => _reminderOffsets = offsets),
+              onChanged: (offsets) =>
+                  setState(() => _reminderOffsets = offsets),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Alarm toggle
-            SwitchListTile(
-              title: const Text('Alarm at due time'),
-              subtitle: const Text('Full-screen alarm when activity is due'),
-              value: _alarmEnabled,
-              onChanged: (value) => setState(() => _alarmEnabled = value),
-              activeColor: AppColors.primary,
-              contentPadding: EdgeInsets.zero,
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: AppRadii.borderRadiusMd,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: SwitchListTile(
+                title: Text('Alarm at due time',
+                    style: AppTypography.bodyLarge),
+                subtitle: Text(
+                  'Full-screen alarm when activity is due',
+                  style: AppTypography.bodySmall,
+                ),
+                value: _alarmEnabled,
+                onChanged: (value) =>
+                    setState(() => _alarmEnabled = value),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Snooze duration
             _buildSnoozePicker(),
@@ -153,40 +173,49 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
 
     return InkWell(
       onTap: _pickTime,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadii.borderRadiusMd,
       child: InputDecorator(
         decoration: const InputDecoration(
           labelText: 'Time',
-          border: OutlineInputBorder(),
-          suffixIcon: Icon(Icons.access_time),
+          suffixIcon: Icon(Icons.access_time_rounded),
         ),
-        child: Text(
-          timeStr,
-          style: const TextStyle(fontSize: 18),
-        ),
+        child: Text(timeStr, style: AppTypography.headingMedium),
       ),
     );
   }
 
   Widget _buildSnoozePicker() {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'Snooze duration',
-            style: TextStyle(fontSize: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: AppRadii.borderRadiusMd,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text('Snooze duration', style: AppTypography.bodyLarge),
           ),
-        ),
-        DropdownButton<int>(
-          value: _snoozeDuration,
-          items: AppConstants.availableSnoozeDurations
-              .map((d) => DropdownMenuItem(value: d, child: Text('$d min')))
-              .toList(),
-          onChanged: (value) {
-            if (value != null) setState(() => _snoozeDuration = value);
-          },
-        ),
-      ],
+          DropdownButton<int>(
+            value: _snoozeDuration,
+            underline: const SizedBox.shrink(),
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.primary,
+            ),
+            items: AppConstants.availableSnoozeDurations
+                .map((d) =>
+                    DropdownMenuItem(value: d, child: Text('$d min')))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _snoozeDuration = value);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -194,14 +223,6 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() => _selectedTime = picked);
@@ -215,7 +236,6 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
     final activity = widget.activity;
 
     if (activity != null) {
-      // Update existing
       final updated = activity.copyWith(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
@@ -229,7 +249,6 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
       );
       await provider.updateActivity(updated);
     } else {
-      // Create new
       final newActivity = Activity(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty

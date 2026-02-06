@@ -16,19 +16,16 @@ class ReminderOffsetPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Early Reminders',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
+        Text('Early Reminders', style: AppTypography.headingSmall),
+        const SizedBox(height: AppSpacing.xxs),
         Text(
           'Get notified before the activity is due',
-          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          style: AppTypography.bodySmall,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
           children: AppConstants.availableReminderOffsets.map((offset) {
             final isSelected = selectedOffsets.contains(offset);
             return FilterChip(
@@ -44,11 +41,16 @@ class ReminderOffsetPicker extends StatelessWidget {
                 }
                 onChanged(updated);
               },
-              selectedColor: AppColors.primary.withOpacity(0.2),
+              selectedColor: AppColors.primary.withOpacity(0.12),
               checkmarkColor: AppColors.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? AppColors.primary : Colors.grey[700],
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              labelStyle: AppTypography.labelMedium.copyWith(
+                color:
+                    isSelected ? AppColors.primary : AppColors.textSecondary,
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
               ),
             );
           }).toList(),
