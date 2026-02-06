@@ -84,6 +84,26 @@ class ActivityProvider extends ChangeNotifier {
     await _scheduler.snooze(activity, snoozeMinutes);
   }
 
+  /// Mark an activity as completed.
+  Future<void> markActivityComplete(String id, {DateTime? completionTime}) async {
+    final index = _activities.indexWhere((a) => a.id == id);
+    if (index == -1) return;
+    final activity = _activities[index];
+    final updated = activity.markCompleted(completionTime: completionTime);
+    _activities[index] = updated;
+    await _storage.saveActivity(updated);
+    notifyListeners();
+  }
+
+  /// Get activity by ID.
+  Activity? getActivity(String id) {
+    try {
+      return _activities.firstWhere((a) => a.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _reindex() {
     for (int i = 0; i < _activities.length; i++) {
       _activities[i] = _activities[i].copyWith(sortOrder: i);

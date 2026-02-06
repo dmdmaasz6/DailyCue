@@ -49,6 +49,14 @@ Future<void> main() async {
           payload: '${activity.id}|snooze',
         );
       }
+    } else if (actionId == AppConstants.actionComplete) {
+      // Mark activity as complete
+      final activities = storageService.getAllActivities();
+      final activity = activities.where((a) => a.id == activityId).firstOrNull;
+      if (activity != null) {
+        final updatedActivity = activity.markCompleted();
+        storageService.saveActivity(updatedActivity);
+      }
     }
     // Dismiss action is handled automatically by cancelNotification: true
   };

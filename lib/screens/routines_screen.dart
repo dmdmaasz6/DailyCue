@@ -8,6 +8,7 @@ import '../utils/constants.dart';
 import '../utils/time_utils.dart';
 import '../widgets/activity_card.dart';
 import 'activity_editor_screen.dart';
+import 'activity_view_screen.dart';
 import 'settings_screen.dart';
 
 class RoutinesScreen extends StatefulWidget {
@@ -307,7 +308,9 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ActivityEditorScreen(activity: activity),
+        builder: (_) => activity != null
+            ? ActivityViewScreen(activity: activity)
+            : const ActivityEditorScreen(),
       ),
     );
   }

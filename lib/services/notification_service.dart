@@ -184,15 +184,23 @@ class NotificationService {
               'content://settings/system/alarm_alert'),
           audioAttributesUsage: AudioAttributesUsage.alarm,
           playSound: true,
+          ongoing: true,
+          autoCancel: false,
+          enableVibration: true,
           actions: const [
             AndroidNotificationAction(
-              AppConstants.actionDismiss,
-              'Dismiss',
+              AppConstants.actionComplete,
+              'Complete',
               cancelNotification: true,
             ),
             AndroidNotificationAction(
               AppConstants.actionSnooze,
               'Snooze',
+              cancelNotification: true,
+            ),
+            AndroidNotificationAction(
+              AppConstants.actionDismiss,
+              'Dismiss',
               cancelNotification: true,
             ),
           ],
@@ -238,15 +246,23 @@ class NotificationService {
               'content://settings/system/alarm_alert'),
           audioAttributesUsage: AudioAttributesUsage.alarm,
           playSound: true,
+          ongoing: true,
+          autoCancel: false,
+          enableVibration: true,
           actions: const [
             AndroidNotificationAction(
-              AppConstants.actionDismiss,
-              'Dismiss',
+              AppConstants.actionComplete,
+              'Complete',
               cancelNotification: true,
             ),
             AndroidNotificationAction(
               AppConstants.actionSnooze,
               'Snooze',
+              cancelNotification: true,
+            ),
+            AndroidNotificationAction(
+              AppConstants.actionDismiss,
+              'Dismiss',
               cancelNotification: true,
             ),
           ],
