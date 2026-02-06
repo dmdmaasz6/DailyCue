@@ -1,5 +1,6 @@
 package com.example.dailycue
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
@@ -52,29 +53,30 @@ class DailyCueWidgetProvider : AppWidgetProvider() {
                         setTextViewText(R.id.widget_activity_time, activityTime)
                         setTextViewText(R.id.widget_countdown, countdown)
 
-                        if (activityDescription.isNotEmpty()) {
-                            setTextViewText(R.id.widget_activity_description, activityDescription)
-                            setViewVisibility(R.id.widget_activity_description, android.view.View.VISIBLE)
-                        } else {
-                            setViewVisibility(R.id.widget_activity_description, android.view.View.GONE)
-                        }
-
-                        // Show stats if there are activities in progress
-                        if (totalCount > 0 && remainingCount > 0) {
-                            setViewVisibility(R.id.widget_stats_section, android.view.View.VISIBLE)
-                            setTextViewText(R.id.widget_completed_count, completedCount.toString())
-                            setTextViewText(R.id.widget_remaining_count, remainingCount.toString())
-                        } else {
-                            setViewVisibility(R.id.widget_stats_section, android.view.View.GONE)
-                        }
+                    if (!activityDescription.isNullOrEmpty()) {
+                        setTextViewText(R.id.widget_activity_description, activityDescription)
+                        setViewVisibility(R.id.widget_activity_description, android.view.View.VISIBLE)
                     } else {
-                        setTextViewText(R.id.widget_activity_title, "No Activities")
-                        setTextViewText(R.id.widget_activity_time, "--:--")
-                        setTextViewText(R.id.widget_countdown, "")
                         setViewVisibility(R.id.widget_activity_description, android.view.View.GONE)
-                        setViewVisibility(R.id.widget_stats_section, android.view.View.GONE)
                     }
+                } else {
+                    setTextViewText(R.id.widget_activity_title, "No Activities")
+                    setTextViewText(R.id.widget_activity_time, "--:--")
+                    setTextViewText(R.id.widget_countdown, "")
+                    setViewVisibility(R.id.widget_activity_description, android.view.View.GONE)
                 }
+
+                // Set click intent to launch the app
+                val launchIntent = Intent(context, MainActivity::class.java).apply {
+                    action = "es.antonborri.home_widget.action.LAUNCH"
+                }
+                val pendingIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                setOnClickPendingIntent(R.id.widget_activity_title, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)
