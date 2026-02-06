@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,7 @@ import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
 import '../utils/time_utils.dart';
-import 'activity_editor_screen.dart';
+import 'activity_view_screen.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -70,11 +71,11 @@ class DashboardScreen extends StatelessWidget {
               return aMin.compareTo(bMin);
             });
 
-          final pastCount = todayActivities
-              .where((a) =>
-                  a.timeOfDay.hour * 60 + a.timeOfDay.minute < nowMinutes)
+          // Count completed activities for today
+          final completedCount = todayActivities
+              .where((a) => a.isCompletedToday())
               .length;
-          final remainingCount = todayActivities.length - pastCount;
+          final remainingCount = todayActivities.length - completedCount;
 
           // Find next upcoming activity
           Activity? nextUp;
@@ -105,7 +106,7 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   // Progress ring
                   _ProgressRing(
-                    completed: pastCount,
+                    completed: completedCount,
                     total: todayActivities.length,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -117,17 +118,17 @@ class DashboardScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _MiniStatCard(
-                                label: 'Remaining',
-                                value: '$remainingCount',
-                                color: AppColors.primary,
+                                label: 'Completed',
+                                value: '$completedCount',
+                                color: AppColors.success,
                               ),
                             ),
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: _MiniStatCard(
-                                label: 'Active',
-                                value: '$enabledCount',
-                                color: AppColors.success,
+                                label: 'Remaining',
+                                value: '$remainingCount',
+                                color: AppColors.primary,
                               ),
                             ),
                           ],
@@ -145,8 +146,8 @@ class DashboardScreen extends StatelessWidget {
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: _MiniStatCard(
-                                label: 'Total',
-                                value: '$totalActivities',
+                                label: 'Active',
+                                value: '$enabledCount',
                                 color: AppColors.textSecondary,
                               ),
                             ),
@@ -169,12 +170,16 @@ class DashboardScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          ActivityEditorScreen(activity: nextUp),
+                          ActivityViewScreen(activity: nextUp),
                     ),
                   ),
                 ),
               if (nextUp != null)
                 const SizedBox(height: AppSpacing.lg),
+
+              // Historical Statistics
+              _buildHistoricalStats(provider.activities),
+              const SizedBox(height: AppSpacing.lg),
 
               // Today's schedule
               Row(
@@ -183,7 +188,7 @@ class DashboardScreen extends StatelessWidget {
                       style: AppTypography.headingLarge),
                   const Spacer(),
                   Text(
-                    '$pastCount of ${todayActivities.length} done',
+                    '$completedCount of ${todayActivities.length} done',
                     style: AppTypography.labelMedium,
                   ),
                 ],
@@ -206,7 +211,7 @@ class DashboardScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            ActivityEditorScreen(activity: activity),
+                            ActivityViewScreen(activity: activity),
                       ),
                     ),
                   );
@@ -239,6 +244,74 @@ class DashboardScreen extends StatelessWidget {
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoricalStats(List<Activity> activities) {
+    final now = DateTime.now();
+    final weekAgo = now.subtract(const Duration(days: 7));
+    final monthAgo = now.subtract(const Duration(days: 30));
+
+    // Calculate weekly completions
+    int weeklyCompletions = 0;
+    // Calculate monthly completions
+    int monthlyCompletions = 0;
+
+    for (final activity in activities) {
+      weeklyCompletions += activity.getCompletionCount(weekAgo, now);
+      monthlyCompletions += activity.getCompletionCount(monthAgo, now);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderRadiusLg,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.insights_rounded,
+                size: AppIconSizes.md,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Activity Insights',
+                style: AppTypography.headingMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _InsightCard(
+                  label: 'This Week',
+                  value: weeklyCompletions.toString(),
+                  icon: Icons.calendar_view_week_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _InsightCard(
+                  label: 'This Month',
+                  value: monthlyCompletions.toString(),
+                  icon: Icons.calendar_month_rounded,
+                  color: AppColors.secondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -369,10 +442,60 @@ class _MiniStatCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Insight card
+// ---------------------------------------------------------------------------
+
+class _InsightCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _InsightCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: AppRadii.borderRadiusMd,
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: AppIconSizes.lg),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            value,
+            style: AppTypography.headingLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Up next card
 // ---------------------------------------------------------------------------
 
-class _UpNextCard extends StatelessWidget {
+class _UpNextCard extends StatefulWidget {
   final Activity activity;
   final int nowMinutes;
   final bool use24Hour;
@@ -386,27 +509,64 @@ class _UpNextCard extends StatelessWidget {
   });
 
   @override
+  State<_UpNextCard> createState() => _UpNextCardState();
+}
+
+class _UpNextCardState extends State<_UpNextCard> {
+  late Timer _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    // Update every second for real-time countdown
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final activityMinutes =
-        activity.timeOfDay.hour * 60 + activity.timeOfDay.minute;
-    final diff = activityMinutes - nowMinutes;
-    final timeStr = use24Hour
-        ? TimeUtils.format24h(activity.timeOfDay)
-        : TimeUtils.format12h(activity.timeOfDay);
+    final now = _currentTime;
+    final activityTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      widget.activity.timeOfDay.hour,
+      widget.activity.timeOfDay.minute,
+    );
+    final diff = activityTime.difference(now);
+    final diffMinutes = diff.inMinutes;
+
+    final timeStr = widget.use24Hour
+        ? TimeUtils.format24h(widget.activity.timeOfDay)
+        : TimeUtils.format12h(widget.activity.timeOfDay);
 
     String countdownStr;
-    if (diff <= 0) {
+    if (diffMinutes <= 0 && diff.inSeconds <= 0) {
       countdownStr = 'Now';
-    } else if (diff < 60) {
-      countdownStr = 'In $diff min';
+    } else if (diffMinutes < 1) {
+      final seconds = diff.inSeconds;
+      countdownStr = 'In ${seconds}s';
+    } else if (diffMinutes < 60) {
+      countdownStr = 'In $diffMinutes min';
     } else {
-      final h = diff ~/ 60;
-      final m = diff % 60;
+      final h = diffMinutes ~/ 60;
+      final m = diffMinutes % 60;
       countdownStr = m > 0 ? 'In ${h}h ${m}m' : 'In ${h}h';
     }
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
@@ -446,7 +606,7 @@ class _UpNextCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    activity.title,
+                    widget.activity.title,
                     style: AppTypography.headingMedium.copyWith(
                       color: Colors.white,
                     ),

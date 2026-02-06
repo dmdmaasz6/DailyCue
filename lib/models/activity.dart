@@ -15,6 +15,7 @@ class Activity {
   String category;
   DateTime createdAt;
   DateTime updatedAt;
+  List<DateTime> completionHistory; // Track when activity was completed
 
   Activity({
     String? id,
@@ -30,13 +31,49 @@ class Activity {
     this.category = 'general',
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<DateTime>? completionHistory,
   })  : id = id ?? const Uuid().v4(),
         repeatDays = repeatDays ?? [],
         earlyReminderOffsets = earlyReminderOffsets ?? [5],
         createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+        updatedAt = updatedAt ?? DateTime.now(),
+        completionHistory = completionHistory ?? [];
 
   bool get isDaily => repeatDays.isEmpty;
+
+  /// Check if activity was completed today
+  bool isCompletedToday() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return completionHistory.any((completion) {
+      final completionDate = DateTime(completion.year, completion.month, completion.day);
+      return completionDate.isAtSameMomentAs(today);
+    });
+  }
+
+  /// Check if activity was completed on a specific date
+  bool isCompletedOn(DateTime date) {
+    final targetDate = DateTime(date.year, date.month, date.day);
+    return completionHistory.any((completion) {
+      final completionDate = DateTime(completion.year, completion.month, completion.day);
+      return completionDate.isAtSameMomentAs(targetDate);
+    });
+  }
+
+  /// Get completion count for a date range
+  int getCompletionCount(DateTime startDate, DateTime endDate) {
+    return completionHistory.where((completion) {
+      return completion.isAfter(startDate.subtract(const Duration(days: 1))) &&
+          completion.isBefore(endDate.add(const Duration(days: 1)));
+    }).length;
+  }
+
+  /// Mark activity as completed
+  Activity markCompleted({DateTime? completionTime}) {
+    final completions = List<DateTime>.from(completionHistory);
+    completions.add(completionTime ?? DateTime.now());
+    return copyWith(completionHistory: completions);
+  }
 
   /// Whether this activity is active on the given weekday (1=Mon..7=Sun).
   bool isActiveOn(int weekday) {
@@ -76,6 +113,7 @@ class Activity {
     int? snoozeDurationMinutes,
     int? sortOrder,
     String? category,
+    List<DateTime>? completionHistory,
   }) {
     return Activity(
       id: id,
@@ -91,6 +129,7 @@ class Activity {
       category: category ?? this.category,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
+      completionHistory: completionHistory ?? List.from(this.completionHistory),
     );
   }
 
@@ -110,6 +149,7 @@ class Activity {
       'category': category,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'completionHistory': completionHistory.map((e) => e.toIso8601String()).toList(),
     };
   }
 
@@ -131,6 +171,9 @@ class Activity {
       category: json['category'] as String? ?? 'general',
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      completionHistory: json['completionHistory'] != null
+          ? (json['completionHistory'] as List).map((e) => DateTime.parse(e as String)).toList()
+          : [],
     );
   }
 

@@ -6,7 +6,7 @@ import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
 import '../utils/time_utils.dart';
-import 'activity_editor_screen.dart';
+import 'activity_view_screen.dart';
 import 'settings_screen.dart';
 
 class WeeklyViewScreen extends StatelessWidget {
@@ -344,7 +344,7 @@ class _DayCard extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          ActivityEditorScreen(activity: activity),
+                          ActivityViewScreen(activity: activity),
                     ),
                   ),
                 );

@@ -25,6 +25,7 @@ class AppConstants {
   // Notification action IDs
   static const String actionDismiss = 'dismiss';
   static const String actionSnooze = 'snooze';
+  static const String actionComplete = 'complete';
 
   // Default settings
   static const int defaultSnoozeDuration = 5; // minutes
