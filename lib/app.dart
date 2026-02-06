@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/activity_provider.dart';
 import 'providers/settings_provider.dart';
-import 'screens/home_screen.dart';
+import 'app_shell.dart';
 import 'services/notification_service.dart';
 import 'services/scheduler_service.dart';
 import 'services/storage_service.dart';
@@ -39,7 +39,7 @@ class DailyCueApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        home: const HomeScreen(),
+        home: const AppShell(),
       ),
     );
   }
