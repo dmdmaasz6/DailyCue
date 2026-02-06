@@ -1,5 +1,6 @@
 package com.example.dailycue
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
@@ -29,7 +30,7 @@ class DailyCueWidgetProvider : AppWidgetProvider() {
                     setTextViewText(R.id.widget_activity_time, activityTime)
                     setTextViewText(R.id.widget_countdown, countdown)
 
-                    if (activityDescription.isNotEmpty()) {
+                    if (!activityDescription.isNullOrEmpty()) {
                         setTextViewText(R.id.widget_activity_description, activityDescription)
                         setViewVisibility(R.id.widget_activity_description, android.view.View.VISIBLE)
                     } else {
@@ -43,10 +44,14 @@ class DailyCueWidgetProvider : AppWidgetProvider() {
                 }
 
                 // Set click intent to launch the app
-                val pendingIntent = HomeWidgetPlugin.getPendingIntentForWidgetClick(
+                val launchIntent = Intent(context, MainActivity::class.java).apply {
+                    action = "es.antonborri.home_widget.action.LAUNCH"
+                }
+                val pendingIntent = PendingIntent.getActivity(
                     context,
-                    widgetId,
-                    Intent(context, MainActivity::class.java)
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 setOnClickPendingIntent(R.id.widget_activity_title, pendingIntent)
             }
