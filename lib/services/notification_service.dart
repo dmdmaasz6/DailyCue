@@ -18,11 +18,12 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   NotificationActionCallback? onAction;
+  bool _exactAlarmsAllowed = true;
 
   Future<void> init() async {
     tz.initializeTimeZones();
-    final timeZoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -32,7 +33,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
+      settings: const InitializationSettings(android: androidInit, iOS: iosInit),
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
 
@@ -87,6 +88,9 @@ class NotificationService {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final granted = await android?.requestNotificationsPermission();
+      final exactGranted = await android?.requestExactAlarmsPermission();
+      await android?.requestFullScreenIntentPermission();
+      _exactAlarmsAllowed = exactGranted ?? _exactAlarmsAllowed;
       return granted ?? false;
     }
     return true;
@@ -101,11 +105,11 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.zonedSchedule(
-      notificationId,
-      title,
-      body,
-      scheduledDate,
-      NotificationDetails(
+      id: notificationId,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      notificationDetails: NotificationDetails(
         android: const AndroidNotificationDetails(
           AppConstants.reminderChannelId,
           AppConstants.reminderChannelName,
@@ -119,7 +123,9 @@ class NotificationService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: _exactAlarmsAllowed
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       payload: payload,
     );
@@ -134,11 +140,11 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.zonedSchedule(
-      notificationId,
-      title,
-      body,
-      scheduledDate,
-      NotificationDetails(
+      id: notificationId,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           AppConstants.alarmChannelId,
           AppConstants.alarmChannelName,
@@ -166,7 +172,9 @@ class NotificationService {
           interruptionLevel: InterruptionLevel.critical,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
+      androidScheduleMode: _exactAlarmsAllowed
+          ? AndroidScheduleMode.alarmClock
+          : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       payload: payload,
     );
@@ -182,11 +190,11 @@ class NotificationService {
   }) async {
     final scheduledDate = tz.TZDateTime.now(tz.local).add(delay);
     await _plugin.zonedSchedule(
-      notificationId,
-      title,
-      body,
-      scheduledDate,
-      NotificationDetails(
+      id: notificationId,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           AppConstants.alarmChannelId,
           AppConstants.alarmChannelName,
@@ -212,14 +220,16 @@ class NotificationService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
+      androidScheduleMode: _exactAlarmsAllowed
+          ? AndroidScheduleMode.alarmClock
+          : AndroidScheduleMode.inexactAllowWhileIdle,
       payload: payload,
     );
   }
 
   /// Cancel a specific notification by ID.
   Future<void> cancel(int notificationId) async {
-    await _plugin.cancel(notificationId);
+    await _plugin.cancel(id: notificationId);
   }
 
   /// Cancel all scheduled notifications.

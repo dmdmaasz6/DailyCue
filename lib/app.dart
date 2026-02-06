@@ -47,7 +47,7 @@ class DailyCueApp extends StatelessWidget {
           appBarTheme: const AppBarTheme(
             centerTitle: true,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 1,
           ),

@@ -61,6 +61,12 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: _delete,
+              tooltip: 'Delete activity',
+            ),
           TextButton(
             onPressed: _save,
             child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -239,5 +245,39 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
     }
 
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _delete() async {
+    final activity = widget.activity;
+    if (activity == null) return;
+
+    final confirmed = await _confirmDelete(context, activity.title);
+    if (confirmed != true) return;
+
+    final provider = context.read<ActivityProvider>();
+    await provider.deleteActivity(activity.id);
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  Future<bool?> _confirmDelete(BuildContext context, String title) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Activity'),
+        content: Text('Are you sure you want to delete "$title"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }
