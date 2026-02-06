@@ -153,15 +153,24 @@ class NotificationService {
           priority: Priority.max,
           fullScreenIntent: true,
           category: AndroidNotificationCategory.alarm,
+          ongoing: true,
+          autoCancel: false,
+          playSound: true,
+          enableVibration: true,
           actions: const [
             AndroidNotificationAction(
-              AppConstants.actionDismiss,
-              'Dismiss',
+              AppConstants.actionComplete,
+              'Complete',
               cancelNotification: true,
             ),
             AndroidNotificationAction(
               AppConstants.actionSnooze,
               'Snooze',
+              cancelNotification: true,
+            ),
+            AndroidNotificationAction(
+              AppConstants.actionDismiss,
+              'Dismiss',
               cancelNotification: true,
             ),
           ],
@@ -202,15 +211,24 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.max,
           category: AndroidNotificationCategory.alarm,
+          ongoing: true,
+          autoCancel: false,
+          playSound: true,
+          enableVibration: true,
           actions: const [
             AndroidNotificationAction(
-              AppConstants.actionDismiss,
-              'Dismiss',
+              AppConstants.actionComplete,
+              'Complete',
               cancelNotification: true,
             ),
             AndroidNotificationAction(
               AppConstants.actionSnooze,
               'Snooze',
+              cancelNotification: true,
+            ),
+            AndroidNotificationAction(
+              AppConstants.actionDismiss,
+              'Dismiss',
               cancelNotification: true,
             ),
           ],
