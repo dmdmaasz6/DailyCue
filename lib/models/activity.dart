@@ -12,6 +12,7 @@ class Activity {
   bool alarmEnabled;
   int snoozeDurationMinutes;
   int sortOrder;
+  String category;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -26,6 +27,7 @@ class Activity {
     this.alarmEnabled = true,
     this.snoozeDurationMinutes = 5,
     this.sortOrder = 0,
+    this.category = 'general',
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
@@ -73,6 +75,7 @@ class Activity {
     bool? alarmEnabled,
     int? snoozeDurationMinutes,
     int? sortOrder,
+    String? category,
   }) {
     return Activity(
       id: id,
@@ -85,6 +88,7 @@ class Activity {
       alarmEnabled: alarmEnabled ?? this.alarmEnabled,
       snoozeDurationMinutes: snoozeDurationMinutes ?? this.snoozeDurationMinutes,
       sortOrder: sortOrder ?? this.sortOrder,
+      category: category ?? this.category,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
@@ -103,6 +107,7 @@ class Activity {
       'alarmEnabled': alarmEnabled,
       'snoozeDurationMinutes': snoozeDurationMinutes,
       'sortOrder': sortOrder,
+      'category': category,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -123,6 +128,7 @@ class Activity {
       alarmEnabled: json['alarmEnabled'] as bool,
       snoozeDurationMinutes: json['snoozeDurationMinutes'] as int,
       sortOrder: json['sortOrder'] as int,
+      category: json['category'] as String? ?? 'general',
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );

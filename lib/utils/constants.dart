@@ -54,6 +54,67 @@ class AppConstants {
 }
 
 // ---------------------------------------------------------------------------
+// Activity Categories
+// ---------------------------------------------------------------------------
+
+class ActivityCategories {
+  ActivityCategories._();
+
+  static const String general = 'general';
+  static const String health = 'health';
+  static const String work = 'work';
+  static const String personal = 'personal';
+  static const String fitness = 'fitness';
+  static const String family = 'family';
+  static const String errands = 'errands';
+  static const String learning = 'learning';
+
+  static const List<String> all = [
+    general, health, work, personal, fitness, family, errands, learning,
+  ];
+
+  static const Map<String, String> labels = {
+    general: 'General',
+    health: 'Health',
+    work: 'Work',
+    personal: 'Personal',
+    fitness: 'Fitness',
+    family: 'Family',
+    errands: 'Errands',
+    learning: 'Learning',
+  };
+
+  static const Map<String, IconData> icons = {
+    general: Icons.circle_outlined,
+    health: Icons.favorite_outline,
+    work: Icons.work_outline,
+    personal: Icons.person_outline,
+    fitness: Icons.fitness_center_outlined,
+    family: Icons.family_restroom_outlined,
+    errands: Icons.shopping_bag_outlined,
+    learning: Icons.school_outlined,
+  };
+
+  static Color color(String category) => _colors[category] ?? _colors[general]!;
+
+  static const Map<String, Color> _colors = {
+    general: Color(0xFF0D7377),  // teal (primary)
+    health: Color(0xFFE5484D),   // red
+    work: Color(0xFF3E63DD),     // blue
+    personal: Color(0xFF8E4EC6),  // purple
+    fitness: Color(0xFFE5484D),   // coral-red
+    family: Color(0xFFF76B15),    // orange
+    errands: Color(0xFF30A46C),   // green
+    learning: Color(0xFFE5A500),  // amber
+  };
+
+  static Color lightColor(String category) {
+    final c = color(category);
+    return c.withOpacity(0.12);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Design System – Colors
 // ---------------------------------------------------------------------------
 

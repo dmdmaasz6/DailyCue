@@ -511,6 +511,7 @@ class _TodayActivityTile extends StatelessWidget {
     final timeStr = use24Hour
         ? TimeUtils.format24h(activity.timeOfDay)
         : TimeUtils.format12h(activity.timeOfDay);
+    final catColor = ActivityCategories.color(activity.category);
 
     return GestureDetector(
       onTap: onTap,
@@ -530,13 +531,13 @@ class _TodayActivityTile extends StatelessWidget {
                     style: AppTypography.monoSmall.copyWith(
                       color: isPast
                           ? AppColors.textTertiary
-                          : AppColors.primary,
+                          : catColor,
                     ),
                   ),
                 ),
               ),
 
-              // Timeline dot and line
+              // Timeline dot and line (category color)
               SizedBox(
                 width: 24,
                 child: Column(
@@ -548,13 +549,12 @@ class _TodayActivityTile extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isPast
                             ? AppColors.disabled
-                            : AppColors.primary,
+                            : catColor,
                         shape: BoxShape.circle,
                         border: isPast
                             ? null
                             : Border.all(
-                                color:
-                                    AppColors.primaryLight.withOpacity(0.4),
+                                color: catColor.withOpacity(0.3),
                                 width: 3,
                               ),
                       ),
@@ -584,11 +584,23 @@ class _TodayActivityTile extends StatelessWidget {
                     border: Border.all(
                       color: isPast
                           ? AppColors.border
-                          : AppColors.primary.withOpacity(0.25),
+                          : catColor.withOpacity(0.25),
                     ),
                   ),
                   child: Row(
                     children: [
+                      // Category accent bar
+                      Container(
+                        width: 3,
+                        height: 32,
+                        margin: const EdgeInsets.only(right: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: isPast
+                              ? AppColors.disabled
+                              : catColor.withOpacity(0.5),
+                          borderRadius: AppRadii.borderRadiusFull,
+                        ),
+                      ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
