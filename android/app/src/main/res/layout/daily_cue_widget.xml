@@ -187,7 +187,7 @@
                             android:paddingStart="2dp"/>
                     </LinearLayout>
 
-                    <View
+                    <ImageView
                         android:layout_width="1dp"
                         android:layout_height="20dp"
                         android:background="#40FFFFFF"/>
