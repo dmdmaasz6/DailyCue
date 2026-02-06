@@ -15,65 +15,75 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: ListView(
         children: [
-          const _SectionHeader(title: 'Display'),
+          _SectionHeader(title: 'DISPLAY'),
           SwitchListTile(
-            title: const Text('24-hour time format'),
-            subtitle: const Text('Use 24-hour clock instead of AM/PM'),
+            title: Text('24-hour time format',
+                style: AppTypography.bodyLarge),
+            subtitle: Text('Use 24-hour clock instead of AM/PM',
+                style: AppTypography.bodySmall),
             value: settings.use24HourFormat,
             onChanged: (value) => settings.setUse24HourFormat(value),
-            activeColor: AppColors.primary,
           ),
           const Divider(),
 
-          const _SectionHeader(title: 'Defaults'),
+          _SectionHeader(title: 'DEFAULTS'),
           ListTile(
-            title: const Text('Default snooze duration'),
-            subtitle: Text('${settings.defaultSnooze} minutes'),
-            trailing: const Icon(Icons.chevron_right),
+            title: Text('Default snooze duration',
+                style: AppTypography.bodyLarge),
+            subtitle: Text('${settings.defaultSnooze} minutes',
+                style: AppTypography.bodySmall),
+            trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _showSnoozePicker(context, settings),
           ),
           ListTile(
-            title: const Text('Default reminder offsets'),
+            title: Text('Default reminder offsets',
+                style: AppTypography.bodyLarge),
             subtitle: Text(
               settings.defaultReminderOffsets.isEmpty
                   ? 'None'
-                  : settings.defaultReminderOffsets.map((o) => '${o}m').join(', '),
+                  : settings.defaultReminderOffsets
+                      .map((o) => '${o}m')
+                      .join(', '),
+              style: AppTypography.bodySmall,
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _showReminderOffsetsPicker(context, settings),
           ),
           const Divider(),
 
-          const _SectionHeader(title: 'Notifications'),
+          _SectionHeader(title: 'NOTIFICATIONS'),
           ListTile(
-            title: const Text('Reschedule all notifications'),
-            subtitle: const Text('Useful after timezone changes or issues'),
-            trailing: const Icon(Icons.refresh),
+            title: Text('Reschedule all notifications',
+                style: AppTypography.bodyLarge),
+            subtitle: Text('Useful after timezone changes or issues',
+                style: AppTypography.bodySmall),
+            trailing: const Icon(Icons.refresh_rounded),
             onTap: () => _rescheduleAll(context),
           ),
           const Divider(),
 
-          const _SectionHeader(title: 'About'),
-          const ListTile(
-            title: Text(AppConstants.appName),
-            subtitle: Text('Version 1.0.0'),
+          _SectionHeader(title: 'ABOUT'),
+          ListTile(
+            title: Text(AppConstants.appName,
+                style: AppTypography.bodyLarge),
+            subtitle:
+                Text('Version 1.0.0', style: AppTypography.bodySmall),
           ),
         ],
       ),
     );
   }
 
-  void _showSnoozePicker(BuildContext context, SettingsProvider settings) {
+  void _showSnoozePicker(
+      BuildContext context, SettingsProvider settings) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Default Snooze Duration'),
+        title: Text('Default Snooze Duration',
+            style: AppTypography.headingMedium),
         children: AppConstants.availableSnoozeDurations.map((duration) {
           return SimpleDialogOption(
             onPressed: () {
@@ -81,13 +91,18 @@ class SettingsScreen extends StatelessWidget {
               Navigator.pop(context);
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               child: Row(
                 children: [
-                  Text('$duration minutes', style: const TextStyle(fontSize: 16)),
+                  Text(
+                    '$duration minutes',
+                    style: AppTypography.bodyLarge,
+                  ),
                   const Spacer(),
                   if (duration == settings.defaultSnooze)
-                    const Icon(Icons.check, color: AppColors.primary),
+                    const Icon(Icons.check_rounded,
+                        color: AppColors.primary),
                 ],
               ),
             ),
@@ -97,17 +112,20 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showReminderOffsetsPicker(BuildContext context, SettingsProvider settings) {
+  void _showReminderOffsetsPicker(
+      BuildContext context, SettingsProvider settings) {
     final selected = List<int>.from(settings.defaultReminderOffsets);
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Default Reminder Offsets'),
+          title: Text('Default Reminder Offsets',
+              style: AppTypography.headingMedium),
           content: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: AppConstants.availableReminderOffsets.map((offset) {
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children:
+                AppConstants.availableReminderOffsets.map((offset) {
               final isSelected = selected.contains(offset);
               return FilterChip(
                 label: Text('$offset min'),
@@ -122,8 +140,20 @@ class SettingsScreen extends StatelessWidget {
                     }
                   });
                 },
-                selectedColor: AppColors.primary.withOpacity(0.2),
+                selectedColor: AppColors.primary.withOpacity(0.12),
                 checkmarkColor: AppColors.primary,
+                labelStyle: AppTypography.labelMedium.copyWith(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+                side: BorderSide(
+                  color:
+                      isSelected ? AppColors.primary : AppColors.border,
+                ),
               );
             }).toList(),
           ),
@@ -150,7 +180,8 @@ class SettingsScreen extends StatelessWidget {
     await provider.rescheduleAll();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All notifications rescheduled')),
+        const SnackBar(
+            content: Text('All notifications rescheduled')),
       );
     }
   }
@@ -163,14 +194,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: AppSpacing.sectionPadding,
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+        style: AppTypography.labelMedium.copyWith(
           color: AppColors.primary,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         ),
       ),
     );
