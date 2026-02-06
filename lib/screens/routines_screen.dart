@@ -7,14 +7,14 @@ import '../widgets/activity_card.dart';
 import 'activity_editor_screen.dart';
 import 'settings_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class RoutinesScreen extends StatelessWidget {
+  const RoutinesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppConstants.appName),
+        title: const Text('My Routines'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
