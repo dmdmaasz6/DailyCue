@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFIX: Prevent duplicate activity completions and resolve build errors\n\n- Add guard in markActivityComplete to prevent multiple completions on same day\n- Fix ActivityViewScreen to use latest activity state from provider for accurate UI\n- Add label\\(\\) and icon\\(\\) helper methods to ActivityCategories class\n- Fix nullable Activity type in dashboard navigation callback\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(flutter analyze:*)",
+      "Bash(del:*)"
+    ]
+  }
+}

@@ -45,7 +45,7 @@ class DailyCueApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-    final colorScheme = ColorScheme(
+    const colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: AppColors.primary,
       onPrimary: AppColors.textOnPrimary,
@@ -70,7 +70,7 @@ class DailyCueApp extends StatelessWidget {
       scaffoldBackgroundColor: AppColors.background,
 
       // AppBar
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0.5,
@@ -78,7 +78,7 @@ class DailyCueApp extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: AppTypography.headingMedium,
-        iconTheme: const IconThemeData(
+        iconTheme: IconThemeData(
           color: AppColors.textPrimary,
           size: AppIconSizes.md,
         ),

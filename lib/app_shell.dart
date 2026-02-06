@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/routines_screen.dart';
 import 'screens/weekly_view_screen.dart';
-import 'screens/settings_screen.dart';
 import 'utils/constants.dart';
 
 class AppShell extends StatefulWidget {

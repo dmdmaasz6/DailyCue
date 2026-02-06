@@ -160,8 +160,10 @@ class DashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Up next card
-              if (nextUp != null)
+              // All completed card or Up next card
+              if (todayActivities.isNotEmpty && completedCount == todayActivities.length)
+                const _AllCompletedCard()
+              else if (nextUp != null)
                 _UpNextCard(
                   activity: nextUp,
                   nowMinutes: nowMinutes,
@@ -174,7 +176,9 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (nextUp != null)
+              if (todayActivities.isNotEmpty && completedCount == todayActivities.length)
+                const SizedBox(height: AppSpacing.lg)
+              else if (nextUp != null)
                 const SizedBox(height: AppSpacing.lg),
 
               // Historical Statistics
@@ -184,7 +188,7 @@ class DashboardScreen extends StatelessWidget {
               // Today's schedule
               Row(
                 children: [
-                  Text("Today's Schedule",
+                  const Text("Today's Schedule",
                       style: AppTypography.headingLarge),
                   const Spacer(),
                   Text(
@@ -233,7 +237,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.wb_sunny_outlined,
             size: AppIconSizes.xl,
             color: AppColors.textTertiary,
@@ -277,7 +281,7 @@ class DashboardScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.insights_rounded,
                 size: AppIconSizes.md,
                 color: AppColors.primary,
@@ -645,6 +649,98 @@ class _UpNextCardState extends State<_UpNextCard> {
 }
 
 // ---------------------------------------------------------------------------
+// All completed congratulations card
+// ---------------------------------------------------------------------------
+
+class _AllCompletedCard extends StatelessWidget {
+  const _AllCompletedCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.success, Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: AppRadii.borderRadiusLg,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.success.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.celebration_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'All Done!',
+            style: AppTypography.displayMedium.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            "You've completed all your activities for today!",
+            style: AppTypography.bodyMedium.copyWith(
+              color: Colors.white.withOpacity(0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: AppRadii.borderRadiusFull,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: Colors.amber,
+                  size: AppIconSizes.sm,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  'Great job!',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Today's timeline activity tile
 // ---------------------------------------------------------------------------
 
@@ -790,13 +886,13 @@ class _TodayActivityTile extends StatelessWidget {
                         ),
                       ),
                       if (isPast)
-                        Icon(
+                        const Icon(
                           Icons.check_circle_rounded,
                           size: AppIconSizes.sm,
                           color: AppColors.success,
                         ),
                       if (activity.alarmEnabled && !isPast)
-                        Icon(
+                        const Icon(
                           Icons.alarm_rounded,
                           size: AppIconSizes.xs,
                           color: AppColors.secondary,
