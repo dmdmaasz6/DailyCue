@@ -7,16 +7,19 @@ import 'app_shell.dart';
 import 'services/notification_service.dart';
 import 'services/scheduler_service.dart';
 import 'services/storage_service.dart';
+import 'services/widget_service.dart';
 import 'utils/constants.dart';
 
 class DailyCueApp extends StatelessWidget {
   final StorageService storageService;
   final NotificationService notificationService;
+  final WidgetService widgetService;
 
   const DailyCueApp({
     super.key,
     required this.storageService,
     required this.notificationService,
+    required this.widgetService,
   });
 
   @override
@@ -32,6 +35,7 @@ class DailyCueApp extends StatelessWidget {
           create: (_) => ActivityProvider(
             storage: storageService,
             scheduler: schedulerService,
+            widgetService: widgetService,
           )..loadActivities(),
         ),
       ],
