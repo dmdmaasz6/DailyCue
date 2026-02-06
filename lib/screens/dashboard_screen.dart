@@ -1,8 +1,13 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/activity.dart';
 import '../providers/activity_provider.dart';
+import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
+import '../utils/time_utils.dart';
+import 'activity_editor_screen.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -43,22 +48,42 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<ActivityProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<ActivityProvider, SettingsProvider>(
+        builder: (context, provider, settings, _) {
+          final now = DateTime.now();
+          final nowMinutes = now.hour * 60 + now.minute;
+          final todayWeekday = now.weekday;
+
           final totalActivities = provider.activities.length;
           final enabledCount =
               provider.activities.where((a) => a.enabled).length;
-          final todayWeekday = DateTime.now().weekday;
+
           final todayActivities = provider.activities
               .where((a) =>
                   a.enabled &&
-                  (a.repeatDays.isEmpty || a.repeatDays.contains(todayWeekday)))
+                  (a.repeatDays.isEmpty ||
+                      a.repeatDays.contains(todayWeekday)))
               .toList()
             ..sort((a, b) {
               final aMin = a.timeOfDay.hour * 60 + a.timeOfDay.minute;
               final bMin = b.timeOfDay.hour * 60 + b.timeOfDay.minute;
               return aMin.compareTo(bMin);
             });
+
+          final pastCount = todayActivities
+              .where((a) =>
+                  a.timeOfDay.hour * 60 + a.timeOfDay.minute < nowMinutes)
+              .length;
+          final remainingCount = todayActivities.length - pastCount;
+
+          // Find next upcoming activity
+          Activity? nextUp;
+          for (final a in todayActivities) {
+            if (a.timeOfDay.hour * 60 + a.timeOfDay.minute >= nowMinutes) {
+              nextUp = a;
+              break;
+            }
+          }
 
           return ListView(
             padding: AppSpacing.screenPadding,
@@ -74,49 +99,118 @@ class DashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Stat cards row
+              // Progress + stats row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Today',
-                      value: '${todayActivities.length}',
-                      icon: Icons.today_rounded,
-                      color: AppColors.primary,
-                    ),
+                  // Progress ring
+                  _ProgressRing(
+                    completed: pastCount,
+                    total: todayActivities.length,
                   ),
                   const SizedBox(width: AppSpacing.md),
+                  // Stat cards column
                   Expanded(
-                    child: _StatCard(
-                      label: 'Active',
-                      value: '$enabledCount',
-                      icon: Icons.check_circle_outline_rounded,
-                      color: AppColors.success,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Total',
-                      value: '$totalActivities',
-                      icon: Icons.schedule_rounded,
-                      color: AppColors.secondary,
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _MiniStatCard(
+                                label: 'Remaining',
+                                value: '$remainingCount',
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: _MiniStatCard(
+                                label: 'Active',
+                                value: '$enabledCount',
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _MiniStatCard(
+                                label: 'Today',
+                                value: '${todayActivities.length}',
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: _MiniStatCard(
+                                label: 'Total',
+                                value: '$totalActivities',
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Up next card
+              if (nextUp != null)
+                _UpNextCard(
+                  activity: nextUp,
+                  nowMinutes: nowMinutes,
+                  use24Hour: settings.use24HourFormat,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ActivityEditorScreen(activity: nextUp),
+                    ),
+                  ),
+                ),
+              if (nextUp != null)
+                const SizedBox(height: AppSpacing.lg),
 
               // Today's schedule
-              Text("Today's Schedule", style: AppTypography.headingLarge),
+              Row(
+                children: [
+                  Text("Today's Schedule",
+                      style: AppTypography.headingLarge),
+                  const Spacer(),
+                  Text(
+                    '$pastCount of ${todayActivities.length} done',
+                    style: AppTypography.labelMedium,
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.md),
 
               if (todayActivities.isEmpty)
                 _buildEmptyToday()
               else
-                ...todayActivities.map(
-                  (activity) => _TodayActivityTile(activity: activity),
-                ),
+                ...todayActivities.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final activity = entry.value;
+                  final isLast = index == todayActivities.length - 1;
+                  return _TodayActivityTile(
+                    activity: activity,
+                    nowMinutes: nowMinutes,
+                    isLast: isLast,
+                    use24Hour: settings.use24HourFormat,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ActivityEditorScreen(activity: activity),
+                      ),
+                    ),
+                  );
+                }),
             ],
           );
         },
@@ -153,43 +247,238 @@ class DashboardScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Stat card widget
+// Progress ring
 // ---------------------------------------------------------------------------
 
-class _StatCard extends StatelessWidget {
+class _ProgressRing extends StatelessWidget {
+  final int completed;
+  final int total;
+
+  const _ProgressRing({required this.completed, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total > 0 ? completed / total : 0.0;
+
+    return SizedBox(
+      width: 120,
+      height: 120,
+      child: CustomPaint(
+        painter: _RingPainter(progress: progress),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$completed',
+                style: AppTypography.displayLarge.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                'of $total',
+                style: AppTypography.labelMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  final double progress;
+  _RingPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 8;
+    const strokeWidth = 10.0;
+
+    // Background ring
+    final bgPaint = Paint()
+      ..color = AppColors.border
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Progress arc
+    if (progress > 0) {
+      final fgPaint = Paint()
+        ..color = AppColors.primary
+        ..strokeWidth = strokeWidth
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        fgPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+// ---------------------------------------------------------------------------
+// Mini stat card
+// ---------------------------------------------------------------------------
+
+class _MiniStatCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
   final Color color;
 
-  const _StatCard({
+  const _MiniStatCard({
     required this.label,
     required this.value,
-    required this.icon,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadii.borderRadiusLg,
+        borderRadius: AppRadii.borderRadiusMd,
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: AppIconSizes.md, color: color),
-          const SizedBox(height: AppSpacing.sm),
           Text(
             value,
-            style: AppTypography.displayMedium.copyWith(color: color),
+            style: AppTypography.headingLarge.copyWith(color: color),
           ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(label, style: AppTypography.labelMedium),
+          Text(label, style: AppTypography.labelSmall),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Up next card
+// ---------------------------------------------------------------------------
+
+class _UpNextCard extends StatelessWidget {
+  final Activity activity;
+  final int nowMinutes;
+  final bool use24Hour;
+  final VoidCallback onTap;
+
+  const _UpNextCard({
+    required this.activity,
+    required this.nowMinutes,
+    required this.use24Hour,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activityMinutes =
+        activity.timeOfDay.hour * 60 + activity.timeOfDay.minute;
+    final diff = activityMinutes - nowMinutes;
+    final timeStr = use24Hour
+        ? TimeUtils.format24h(activity.timeOfDay)
+        : TimeUtils.format12h(activity.timeOfDay);
+
+    String countdownStr;
+    if (diff <= 0) {
+      countdownStr = 'Now';
+    } else if (diff < 60) {
+      countdownStr = 'In $diff min';
+    } else {
+      final h = diff ~/ 60;
+      final m = diff % 60;
+      countdownStr = m > 0 ? 'In ${h}h ${m}m' : 'In ${h}h';
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: AppRadii.borderRadiusLg,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: AppRadii.borderRadiusMd,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: AppIconSizes.lg,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'UP NEXT',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white.withOpacity(0.7),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    activity.title,
+                    style: AppTypography.headingMedium.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    timeStr,
+                    style: AppTypography.monoSmall.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: AppRadii.borderRadiusFull,
+              ),
+              child: Text(
+                countdownStr,
+                style: AppTypography.labelLarge.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -200,99 +489,153 @@ class _StatCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _TodayActivityTile extends StatelessWidget {
-  final dynamic activity;
+  final Activity activity;
+  final int nowMinutes;
+  final bool isLast;
+  final bool use24Hour;
+  final VoidCallback onTap;
 
-  const _TodayActivityTile({required this.activity});
+  const _TodayActivityTile({
+    required this.activity,
+    required this.nowMinutes,
+    required this.isLast,
+    required this.use24Hour,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hour = activity.timeOfDay.hour;
-    final minute = activity.timeOfDay.minute;
-    final timeStr =
-        '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-
-    final now = DateTime.now();
-    final activityMinutes = hour * 60 + minute;
-    final nowMinutes = now.hour * 60 + now.minute;
+    final activityMinutes =
+        activity.timeOfDay.hour * 60 + activity.timeOfDay.minute;
     final isPast = activityMinutes < nowMinutes;
+    final timeStr = use24Hour
+        ? TimeUtils.format24h(activity.timeOfDay)
+        : TimeUtils.format12h(activity.timeOfDay);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Time column
-          SizedBox(
-            width: 56,
-            child: Text(
-              timeStr,
-              style: AppTypography.monoSmall.copyWith(
-                color: isPast ? AppColors.textTertiary : AppColors.primary,
-              ),
-            ),
-          ),
-
-          // Timeline dot and line
-          Column(
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: isPast
-                      ? AppColors.textTertiary
-                      : AppColors.primary,
-                  shape: BoxShape.circle,
+              // Time column
+              SizedBox(
+                width: 56,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    timeStr,
+                    style: AppTypography.monoSmall.copyWith(
+                      color: isPast
+                          ? AppColors.textTertiary
+                          : AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
-              Container(
-                width: 2,
-                height: 40,
-                color: AppColors.border,
+
+              // Timeline dot and line
+              SizedBox(
+                width: 24,
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppSpacing.xs),
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: isPast
+                            ? AppColors.disabled
+                            : AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: isPast
+                            ? null
+                            : Border.all(
+                                color:
+                                    AppColors.primaryLight.withOpacity(0.4),
+                                width: 3,
+                              ),
+                      ),
+                    ),
+                    if (!isLast)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          color: AppColors.border,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+
+              // Activity content
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: isPast
+                        ? AppColors.surfaceAlt
+                        : AppColors.surface,
+                    borderRadius: AppRadii.borderRadiusMd,
+                    border: Border.all(
+                      color: isPast
+                          ? AppColors.border
+                          : AppColors.primary.withOpacity(0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.title,
+                              style: AppTypography.headingSmall.copyWith(
+                                color: isPast
+                                    ? AppColors.textTertiary
+                                    : AppColors.textPrimary,
+                                decoration: isPast
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                            if (activity.description != null &&
+                                activity.description!.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xxs),
+                              Text(
+                                activity.description!,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (isPast)
+                        Icon(
+                          Icons.check_circle_rounded,
+                          size: AppIconSizes.sm,
+                          color: AppColors.success,
+                        ),
+                      if (activity.alarmEnabled && !isPast)
+                        Icon(
+                          Icons.alarm_rounded,
+                          size: AppIconSizes.xs,
+                          color: AppColors.secondary,
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(width: AppSpacing.md),
-
-          // Activity content
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: isPast
-                    ? AppColors.surfaceAlt
-                    : AppColors.surface,
-                borderRadius: AppRadii.borderRadiusMd,
-                border: Border.all(
-                  color: isPast ? AppColors.border : AppColors.primary.withOpacity(0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    activity.title,
-                    style: AppTypography.headingSmall.copyWith(
-                      color: isPast
-                          ? AppColors.textTertiary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  if (activity.description != null &&
-                      activity.description!.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      activity.description!,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -59,7 +59,7 @@ class ActivityCard extends StatelessWidget {
                 // Vertical accent line
                 Container(
                   width: 3,
-                  height: 36,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: activity.enabled
                         ? AppColors.primary.withOpacity(0.3)
@@ -69,7 +69,7 @@ class ActivityCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.md),
 
-                // Title and details
+                // Title, details, and day dots
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,13 +82,37 @@ class ActivityCard extends StatelessWidget {
                               : AppColors.disabledText,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
+                      const SizedBox(height: AppSpacing.xs),
                       Row(
                         children: [
+                          // Day dots
+                          ...List.generate(7, (index) {
+                            final day = index + 1;
+                            final isActive = activity.repeatDays.isEmpty ||
+                                activity.repeatDays.contains(day);
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.only(right: 3),
+                              child: Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? (activity.enabled
+                                          ? AppColors.primary
+                                          : AppColors.disabled)
+                                      : AppColors.border,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(width: AppSpacing.sm),
                           Text(
                             repeatStr,
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.textTertiary,
+                              fontSize: 11,
                             ),
                           ),
                           if (activity.alarmEnabled) ...[
@@ -101,7 +125,8 @@ class ActivityCard extends StatelessWidget {
                                   : AppColors.textTertiary,
                             ),
                           ],
-                          if (activity.earlyReminderOffsets.isNotEmpty) ...[
+                          if (activity.earlyReminderOffsets
+                              .isNotEmpty) ...[
                             const SizedBox(width: AppSpacing.xs),
                             Icon(
                               Icons.notifications_outlined,
