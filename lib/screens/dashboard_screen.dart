@@ -764,6 +764,9 @@ class _TodayActivityTile extends StatelessWidget {
     final activityMinutes =
         activity.timeOfDay.hour * 60 + activity.timeOfDay.minute;
     final isPast = activityMinutes < nowMinutes;
+    final isCompleted = activity.isCompletedToday();
+    final isMissed = isPast && !isCompleted;
+    final isUpcoming = !isPast;
     final timeStr = use24Hour
         ? TimeUtils.format24h(activity.timeOfDay)
         : TimeUtils.format12h(activity.timeOfDay);
@@ -785,9 +788,9 @@ class _TodayActivityTile extends StatelessWidget {
                   child: Text(
                     timeStr,
                     style: AppTypography.monoSmall.copyWith(
-                      color: isPast
-                          ? AppColors.textTertiary
-                          : catColor,
+                      color: isCompleted
+                          ? AppColors.success
+                          : (isMissed ? AppColors.textTertiary : catColor),
                     ),
                   ),
                 ),
@@ -803,16 +806,16 @@ class _TodayActivityTile extends StatelessWidget {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: isPast
-                            ? AppColors.disabled
-                            : catColor,
+                        color: isCompleted
+                            ? AppColors.success
+                            : (isMissed ? AppColors.disabled : catColor),
                         shape: BoxShape.circle,
-                        border: isPast
-                            ? null
-                            : Border.all(
+                        border: isUpcoming
+                            ? Border.all(
                                 color: catColor.withOpacity(0.3),
                                 width: 3,
-                              ),
+                              )
+                            : null,
                       ),
                     ),
                     if (!isLast)
@@ -833,14 +836,16 @@ class _TodayActivityTile extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: isPast
-                        ? AppColors.surfaceAlt
-                        : AppColors.surface,
+                    color: isCompleted
+                        ? AppColors.success.withOpacity(0.04)
+                        : (isMissed ? AppColors.surfaceAlt : AppColors.surface),
                     borderRadius: AppRadii.borderRadiusMd,
                     border: Border.all(
-                      color: isPast
-                          ? AppColors.border
-                          : catColor.withOpacity(0.25),
+                      color: isCompleted
+                          ? AppColors.success.withOpacity(0.3)
+                          : (isMissed
+                              ? AppColors.warning.withOpacity(0.3)
+                              : catColor.withOpacity(0.25)),
                     ),
                   ),
                   child: Row(
@@ -851,9 +856,11 @@ class _TodayActivityTile extends StatelessWidget {
                         height: 32,
                         margin: const EdgeInsets.only(right: AppSpacing.sm),
                         decoration: BoxDecoration(
-                          color: isPast
-                              ? AppColors.disabled
-                              : catColor.withOpacity(0.5),
+                          color: isCompleted
+                              ? AppColors.success.withOpacity(0.5)
+                              : (isMissed
+                                  ? AppColors.disabled
+                                  : catColor.withOpacity(0.5)),
                           borderRadius: AppRadii.borderRadiusFull,
                         ),
                       ),
@@ -864,12 +871,9 @@ class _TodayActivityTile extends StatelessWidget {
                             Text(
                               activity.title,
                               style: AppTypography.headingSmall.copyWith(
-                                color: isPast
+                                color: isMissed
                                     ? AppColors.textTertiary
                                     : AppColors.textPrimary,
-                                decoration: isPast
-                                    ? TextDecoration.lineThrough
-                                    : null,
                               ),
                             ),
                             if (activity.description != null &&
@@ -885,13 +889,45 @@ class _TodayActivityTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (isPast)
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          size: AppIconSizes.sm,
-                          color: AppColors.success,
-                        ),
-                      if (activity.alarmEnabled && !isPast)
+                      if (isCompleted)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: AppIconSizes.sm,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              'Done',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (isMissed)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.schedule_rounded,
+                              size: AppIconSizes.xs,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              'Missed',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (activity.alarmEnabled)
                         const Icon(
                           Icons.alarm_rounded,
                           size: AppIconSizes.xs,
