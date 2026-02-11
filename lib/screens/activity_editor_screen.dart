@@ -359,7 +359,7 @@ class _ActivityEditorScreenState extends State<ActivityEditorScreen> {
       await provider.addActivity(newActivity);
     }
 
-    if (mounted) Navigator.pop(context);
+    if (mounted) Navigator.pop(context, true);
   }
 
   Future<void> _delete() async {
