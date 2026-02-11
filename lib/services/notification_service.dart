@@ -8,6 +8,19 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../utils/constants.dart';
 
+/// Top-level function for handling background notification actions
+/// Must be top-level or static for background execution
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) {
+  // This runs in a separate isolate, so we need to handle actions here
+  // or communicate back to the main app
+  if (response.actionId != null && response.actionId!.isNotEmpty) {
+    // For background actions, we need to trigger the callback through the main isolate
+    // The NotificationService singleton will handle this
+    NotificationService()._handleBackgroundAction(response.actionId!, response.payload);
+  }
+}
+
 /// Callback for handling notification actions (dismiss / snooze).
 typedef NotificationActionCallback = void Function(String actionId, String? payload);
 
@@ -43,6 +56,7 @@ class NotificationService {
     await _plugin.initialize(
       settings: const InitializationSettings(android: androidInit, iOS: iosInit),
       onDidReceiveNotificationResponse: _onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
     // Create Android notification channels
@@ -82,6 +96,13 @@ class NotificationService {
     if (actionId != null && actionId.isNotEmpty) {
       onAction?.call(actionId, payload);
     }
+  }
+
+  void _handleBackgroundAction(String actionId, String? payload) {
+    if (kDebugMode) {
+      debugPrint('Background notification action: $actionId, payload: $payload');
+    }
+    onAction?.call(actionId, payload);
   }
 
   /// Request notification permissions (iOS + Android 13+).
