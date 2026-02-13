@@ -2,9 +2,9 @@ import '../models/activity.dart';
 
 /// Time period for statistics calculations.
 enum StatsPeriod {
-  week(7, 'Last 7 Days'),
-  month(30, 'Last 30 Days'),
-  quarter(90, 'Last 90 Days');
+  week(7, '7 Days'),
+  month(30, '30 Days'),
+  quarter(90, '90 Days');
 
   final int days;
   final String label;

@@ -146,7 +146,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 _TrendBadge(
                   delta: delta,
                   deltaAbs: deltaAbs,
-                  periodLabel: _selectedPeriod.label.replaceFirst('Last ', ''),
+                  periodLabel: _selectedPeriod.label,
                 ),
               ],
             ),
