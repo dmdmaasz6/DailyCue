@@ -77,16 +77,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm,
       ),
-      child: Row(
+      child: Wrap(
+        spacing: AppSpacing.sm,
         children: StatsPeriod.values.map((period) {
           final selected = period == _selectedPeriod;
-          return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: ChoiceChip(
-              label: Text(period.label),
-              selected: selected,
-              onSelected: (_) => setState(() => _selectedPeriod = period),
-            ),
+          return ChoiceChip(
+            label: Text(period.label),
+            selected: selected,
+            onSelected: (_) => setState(() => _selectedPeriod = period),
           );
         }).toList(),
       ),
