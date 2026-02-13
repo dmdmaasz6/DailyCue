@@ -107,7 +107,7 @@ class ActivityCategories {
     health: Color(0xFFE5484D),   // red
     work: Color(0xFF3E63DD),     // blue
     personal: Color(0xFF8E4EC6),  // purple
-    fitness: Color(0xFFE5484D),   // coral-red
+    fitness: Color(0xFFE8836B),   // warm coral
     family: Color(0xFFF76B15),    // orange
     errands: Color(0xFF30A46C),   // green
     learning: Color(0xFFE5A500),  // amber
