@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/dashboard_screen.dart';
+import 'screens/insights_screen.dart';
 import 'screens/routines_screen.dart';
 import 'screens/weekly_view_screen.dart';
 import 'utils/constants.dart';
@@ -20,6 +21,7 @@ class _AppShellState extends State<AppShell> {
     DashboardScreen(),
     RoutinesScreen(),
     WeeklyViewScreen(),
+    InsightsScreen(),
   ];
 
   @override
@@ -80,6 +82,11 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(Icons.calendar_view_week_outlined),
               activeIcon: Icon(Icons.calendar_view_week_rounded),
               label: 'Weekly',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.insights_outlined),
+              activeIcon: Icon(Icons.insights_rounded),
+              label: 'Insights',
             ),
           ],
         ),
