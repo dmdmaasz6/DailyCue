@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../models/ai_model_config.dart';
 import '../utils/constants.dart';
 
 class DownloadProgress {
@@ -24,17 +25,17 @@ enum ModelStatus { notDownloaded, downloading, downloaded, corrupted }
 class ModelManager {
   bool _cancelRequested = false;
 
-  Future<String> get _modelDirectory async {
+  Future<String> _getModelDirectory(AiModelConfig model) async {
     final appDir = await getApplicationDocumentsDirectory();
-    return '${appDir.path}/models/${AppConstants.modelDirectoryName}';
+    return '${appDir.path}/models/${model.directoryName}';
   }
 
-  Future<ModelStatus> getModelStatus() async {
-    final dir = Directory(await _modelDirectory);
+  Future<ModelStatus> getModelStatus(AiModelConfig model) async {
+    final dir = Directory(await _getModelDirectory(model));
     if (!dir.existsSync()) return ModelStatus.notDownloaded;
 
     // Check if all required files exist
-    for (final fileName in AppConstants.modelFiles) {
+    for (final fileName in model.modelFiles) {
       final file = File('${dir.path}/$fileName');
       if (!file.existsSync()) return ModelStatus.corrupted;
     }
@@ -46,16 +47,27 @@ class ModelManager {
     return ModelStatus.downloaded;
   }
 
-  Future<bool> isModelDownloaded() async {
-    return await getModelStatus() == ModelStatus.downloaded;
+  // NEW: Detect which model is already downloaded (for migration)
+  Future<AiModelConfig?> getDownloadedModel() async {
+    for (final model in AppConstants.availableModels) {
+      final status = await getModelStatus(model);
+      if (status == ModelStatus.downloaded) {
+        return model;
+      }
+    }
+    return null;
   }
 
-  Future<String> getModelPath() async {
-    return _modelDirectory;
+  Future<bool> isModelDownloaded(AiModelConfig model) async {
+    return await getModelStatus(model) == ModelStatus.downloaded;
   }
 
-  Future<int> getModelSizeOnDisk() async {
-    final dir = Directory(await _modelDirectory);
+  Future<String> getModelPath(AiModelConfig model) async {
+    return _getModelDirectory(model);
+  }
+
+  Future<int> getModelSizeOnDisk(AiModelConfig model) async {
+    final dir = Directory(await _getModelDirectory(model));
     if (!dir.existsSync()) return 0;
 
     int totalSize = 0;
@@ -67,9 +79,9 @@ class ModelManager {
     return totalSize;
   }
 
-  Stream<DownloadProgress> downloadModel() async* {
+  Stream<DownloadProgress> downloadModel(AiModelConfig model) async* {
     _cancelRequested = false;
-    final dirPath = await _modelDirectory;
+    final dirPath = await _getModelDirectory(model);
     final dir = Directory(dirPath);
 
     if (!dir.existsSync()) {
@@ -77,9 +89,9 @@ class ModelManager {
     }
 
     int totalDownloaded = 0;
-    final totalEstimate = AppConstants.modelApproxSizeBytes;
+    final totalEstimate = model.approxSizeBytes;
 
-    for (final fileName in AppConstants.modelFiles) {
+    for (final fileName in model.modelFiles) {
       if (_cancelRequested) {
         yield DownloadProgress(
           bytesReceived: totalDownloaded,
@@ -103,7 +115,7 @@ class ModelManager {
         continue;
       }
 
-      final url = '${AppConstants.modelDownloadUrl}/$fileName';
+      final url = '${model.downloadBaseUrl}/$fileName';
 
       try {
         final request = http.Request('GET', Uri.parse(url));
@@ -156,8 +168,8 @@ class ModelManager {
     _cancelRequested = true;
   }
 
-  Future<void> deleteModel() async {
-    final dir = Directory(await _modelDirectory);
+  Future<void> deleteModel(AiModelConfig model) async {
+    final dir = Directory(await _getModelDirectory(model));
     if (dir.existsSync()) {
       await dir.delete(recursive: true);
     }

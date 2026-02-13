@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/ai_model_config.dart';
 
 // ---------------------------------------------------------------------------
 // App‑wide constants (non‑visual)
@@ -55,20 +56,61 @@ class AppConstants {
 
   // AI Coach constants
   static const String hiveBoxAiChat = 'ai_chat_history';
-  static const String modelDirectoryName = 'phi-3.5-mini-instruct-int4-cpu';
-  static const String modelDownloadUrl =
-      'https://huggingface.co/microsoft/Phi-3.5-mini-instruct-onnx/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4';
-  static const List<String> modelFiles = [
-    'added_tokens.json',
-    'genai_config.json',
-    'phi3.5-mini-instruct-cpu-int4-rtn-block-32-acc-level-4.onnx',
-    'phi3.5-mini-instruct-cpu-int4-rtn-block-32-acc-level-4.onnx.data',
-    'special_tokens_map.json',
-    'tokenizer.json',
-    'tokenizer.model',
-    'tokenizer_config.json',
-  ];
-  static const int modelApproxSizeBytes = 2400000000; // ~2.3 GB
+
+  // Available AI Models
+  static const AiModelConfig phi35Model = AiModelConfig(
+    id: 'phi-3.5',
+    displayName: 'PHI-3.5 Mini',
+    directoryName: 'phi-3.5-mini-instruct-int4-cpu',
+    downloadBaseUrl: 'https://huggingface.co/microsoft/Phi-3.5-mini-instruct-onnx/resolve/main/cpu_and_mobile/cpu-int4-awq-block-128-acc-level-4',
+    modelFiles: [
+      'config.json',
+      'configuration_phi3.py',
+      'genai_config.json',
+      'phi-3.5-mini-instruct-cpu-int4-awq-block-128-acc-level-4.onnx',
+      'phi-3.5-mini-instruct-cpu-int4-awq-block-128-acc-level-4.onnx.data',
+      'special_tokens_map.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+    ],
+    approxSizeBytes: 2780000000, // ~2.78 GB (actual size)
+    minimumRamMb: 6144, // 6 GB
+    description: 'Faster, smaller model for devices with 6GB+ RAM',
+  );
+
+  static const AiModelConfig phi4Model = AiModelConfig(
+    id: 'phi-4',
+    displayName: 'PHI-4 Mini',
+    directoryName: 'phi-4-mini-instruct-int4-cpu',
+    downloadBaseUrl: 'https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4',
+    modelFiles: [
+      'added_tokens.json',
+      'config.json',
+      'configuration_phi3.py',
+      'genai_config.json',
+      'merges.txt',
+      'model.onnx',
+      'model.onnx.data',
+      'special_tokens_map.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'vocab.json',
+    ],
+    approxSizeBytes: 4930000000, // ~4.93 GB
+    minimumRamMb: 8192, // 8 GB
+    description: 'More capable model for devices with 8GB+ RAM',
+  );
+
+  static const List<AiModelConfig> availableModels = [phi35Model, phi4Model];
+
+  static AiModelConfig getModelById(String id) {
+    return availableModels.firstWhere(
+      (m) => m.id == id,
+      orElse: () => phi35Model,
+    );
+  }
+
+  // Model runtime constants
   static const int maxConversationTurns = 20;
   static const int maxGenerationTokens = 512;
   static const double modelTemperature = 0.7;

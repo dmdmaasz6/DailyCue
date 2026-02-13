@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../providers/ai_chat_provider.dart';
+import '../services/storage_service.dart';
 import '../utils/constants.dart';
 
 class ModelDownloadCard extends StatelessWidget {
@@ -24,6 +26,9 @@ class ModelDownloadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the selected model from storage
+    final model = Provider.of<StorageService>(context).selectedModel;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -73,7 +78,7 @@ class ModelDownloadCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // Model info
+                // Model info (dynamic based on selected model)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -93,11 +98,11 @@ class ModelDownloadCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Phi-3.5 Mini (INT4)',
+                              '${model.displayName} (INT4)',
                               style: AppTypography.labelLarge,
                             ),
                             Text(
-                              '~2.3 GB download · Runs offline',
+                              '~${(model.approxSizeBytes / 1024 / 1024 / 1024).toStringAsFixed(1)} GB download · Runs offline',
                               style: AppTypography.bodySmall,
                             ),
                           ],

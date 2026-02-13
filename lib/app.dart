@@ -36,6 +36,10 @@ class DailyCueApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
+        // StorageService - make it available to all widgets
+        Provider<StorageService>.value(
+          value: storageService,
+        ),
         ChangeNotifierProvider(
           create: (_) => SettingsProvider(storage: storageService),
         ),

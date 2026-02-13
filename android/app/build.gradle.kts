@@ -67,10 +67,20 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packagingOptions {
+        // Ensure native libraries are properly extracted
+        jniLibs {
+            useLegacyPackaging = false
+            pickFirsts.add("lib/*/libonnxruntime.so")
+        }
+    }
 }
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ONNX Runtime — base library required by GenAI
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.24.1")
     // ONNX Runtime GenAI — local AAR (auto-downloaded from GitHub Releases).
     implementation(files("libs/onnxruntime-genai.aar"))
 }

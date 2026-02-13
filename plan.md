@@ -4,10 +4,10 @@
 
 Integrate an offline LLM via ONNX Runtime GenAI into DailyCue with a chat interface that can **read/write activity data** and **read user statistics** to provide life balance coaching. The LLM uses a tool-calling pattern to interact with app data.
 
-**Model:** Phi-3.5-mini-instruct (3.8B, INT4 quantized, ~2.3 GB)
-- Best tested ONNX model with official optimized exports for mobile CPU
-- Runs on 6 GB+ RAM devices — covers ~90% of phones in active use (2021+)
-- Strong instruction-following and function-calling capability
+**Model:** Phi-4-mini-instruct (3.8B, INT4 quantized, ~4.93 GB)
+- Latest ONNX model with official optimized exports for mobile CPU
+- Runs on 8 GB+ RAM devices — covers most modern phones (2022+)
+- Improved instruction-following and function-calling capability over Phi-4
 - MIT license, no usage restrictions
 
 **Runtime:** ONNX Runtime GenAI (C/C++ library, ~15 MB per platform)
@@ -50,7 +50,7 @@ Integrate an offline LLM via ONNX Runtime GenAI into DailyCue with a chat interf
 │                                                               │
 │  ONNX Runtime GenAI (aar/framework)                           │
 │  ├─ CPU Execution Provider (XNNPACK)                          │
-│  └─ Model: Phi-3.5-mini-instruct-onnx (INT4)                 │
+│  └─ Model: Phi-4-mini-instruct-onnx (INT4)                    │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -68,7 +68,7 @@ Integrate an offline LLM via ONNX Runtime GenAI into DailyCue with a chat interf
 | 4 | `lib/services/llm_service.dart` | High-level LLM orchestrator — manages conversation loop with tool calling |
 | 5 | `lib/services/model_manager.dart` | Model download, storage, verification, deletion |
 | 6 | `lib/services/tool_executor.dart` | Dispatches tool calls to the correct handler, returns results |
-| 7 | `lib/services/prompt_builder.dart` | Builds system prompts and formats tool definitions for Phi-3.5 chat template |
+| 7 | `lib/services/prompt_builder.dart` | Builds system prompts and formats tool definitions for Phi-4 chat template |
 | 8 | `lib/providers/ai_chat_provider.dart` | ChangeNotifier managing chat state, message history, loading states |
 | 9 | `lib/screens/ai_chat_screen.dart` | Chat UI — message bubbles, input field, streaming response display |
 | 10 | `lib/widgets/chat_message_bubble.dart` | Styled message bubble widget (user/assistant/tool action indicators) |
@@ -106,8 +106,8 @@ crypto: ^3.0.3        # SHA256 verification of downloaded model
 ```dart
 // AI Coach constants
 static const String hiveBoxAiChat = 'ai_chat_history';
-static const String modelFileName = 'phi-3.5-mini-instruct-int4-cpu';
-static const int modelSizeBytes = 2400000000; // ~2.3 GB
+static const String modelFileName = 'phi-4-mini-instruct-int4-cpu';
+static const int modelSizeBytes = 4930000000; // ~4.93 GB
 static const int maxConversationTurns = 20;
 static const int maxGenerationTokens = 512;
 static const double modelTemperature = 0.7;
@@ -219,7 +219,7 @@ class ModelManager {
 }
 ```
 
-The model files are stored in the app's documents directory under `models/phi-3.5-mini/`. The download streams a `.tar.gz` archive from Hugging Face and extracts the ONNX model files (model.onnx, model.onnx.data, tokenizer files, genai_config.json).
+The model files are stored in the app's documents directory under `models/phi-4-mini/`. The download fetches individual model files from Hugging Face including the ONNX model files (model.onnx, model.onnx.data, tokenizer files, config files, and genai_config.json).
 
 ### Step 7: Tool Executor and Tools
 
@@ -272,7 +272,7 @@ Each tool handler accesses `ActivityProvider` and `StatisticsCalculator` to retr
 
 **`lib/services/prompt_builder.dart`**:
 
-Builds prompts using **Phi-3.5 chat template** (`<|system|>`, `<|user|>`, `<|assistant|>`, `<|end|>`).
+Builds prompts using **Phi-4 chat template** (`<|system|>`, `<|user|>`, `<|assistant|>`, `<|end|>`).
 
 **System prompt structure:**
 ```
@@ -466,35 +466,35 @@ static const hiveBoxAiChat = 'ai_chat_history';
 
 ## Model Selection Rationale
 
-### Why Phi-3.5-mini-instruct (INT4-CPU)?
+### Why Phi-4-mini-instruct (INT4-CPU)?
 
-| Criterion | Phi-3.5-mini (chosen) | Phi-4-mini-flash | SmolLM 1.5B |
+| Criterion | Phi-4-mini (chosen) | Phi-4-mini-flash | SmolLM 1.5B |
 |---|---|---|---|
 | Parameters | 3.8B | 3.8B | 1.5B |
-| RAM needed | ~3 GB | ~3 GB | ~1.5 GB |
-| Download size | ~2.3 GB | ~2.3 GB | ~1 GB |
-| Min phone RAM | 6 GB | 6 GB | 4 GB |
-| Phone coverage | ~90% active devices | ~90% | ~98% |
+| RAM needed | ~5 GB | ~5 GB | ~1.5 GB |
+| Download size | ~4.93 GB | ~4.93 GB | ~1 GB |
+| Min phone RAM | 8 GB | 8 GB | 4 GB |
+| Phone coverage | ~80% active devices | ~80% | ~98% |
 | ONNX mobile CPU export | Official, well-tested | Newer, less tested | Limited ONNX support |
 | Instruction following | Excellent | Excellent | Moderate |
 | Tool/function calling | Strong | Strong | Weak |
 | Multilingual | 128K context, multi-lang | Good | Limited |
 | License | MIT | MIT | Apache 2.0 |
 
-**Phi-3.5-mini wins** because:
+**Phi-4-mini wins** because:
 1. **Official ONNX mobile CPU export** exists on Hugging Face — no custom conversion needed
-2. **Best tested** of all Phi variants on ONNX Runtime mobile — Microsoft's own reference model
-3. **Strong tool calling** — critical for our read/write activity data pattern
-4. **6 GB phone coverage (~90%)** is acceptable — most phones sold since 2021 have 6+ GB
-5. Phi-4-mini-flash is newer and less battle-tested on mobile ONNX; can upgrade later
+2. **Latest generation** of Phi models with improved reasoning and instruction-following
+3. **Stronger tool calling** — critical for our read/write activity data pattern
+4. **8 GB phone coverage (~80%)** is acceptable — most flagship phones from 2022+ have 8+ GB
+5. Better performance and accuracy over Phi-3.5 justifies the larger model size
 
 ### Device Compatibility
 
 | RAM | % of Active Phones | Experience |
 |---|---|---|
-| 4 GB | ~8% | Not supported (shows "device not compatible" message) |
-| 6 GB | ~25% | Supported with reduced context (2048 tokens) |
-| 8 GB+ | ~67% | Full experience (4096 token context) |
+| 4-6 GB | ~20% | Not supported (shows "device not compatible" message) |
+| 8 GB | ~30% | Supported with full context (4096 tokens) |
+| 12 GB+ | ~50% | Optimal experience (8192 token context) |
 
 ---
 

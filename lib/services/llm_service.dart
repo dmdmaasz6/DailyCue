@@ -67,9 +67,8 @@ class LlmService {
         _promptBuilder = promptBuilder,
         _modelManager = modelManager;
 
-  Future<bool> loadModel() async {
-    final path = await _modelManager.getModelPath();
-    return _onnx.loadModel(path);
+  Future<bool> loadModel(String modelPath) async {
+    return _onnx.loadModel(modelPath);
   }
 
   Future<void> unloadModel() async {

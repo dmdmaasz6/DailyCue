@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import '../models/ai_model_config.dart';
 import '../models/chat_message.dart';
+import '../services/device_info_service.dart';
 import '../services/llm_service.dart';
 import '../services/model_manager.dart';
 import '../services/storage_service.dart';
@@ -54,15 +56,40 @@ class AiChatProvider extends ChangeNotifier {
     _init();
   }
 
+  // Get the currently selected model from storage
+  AiModelConfig get currentModel => _storage.selectedModel;
+
   Future<void> _init() async {
     // Load chat history
     _messages = _storage.getChatHistory();
 
-    // Check model status
-    final status = await _modelManager.getModelStatus();
-    _downloadState = status == ModelStatus.downloaded
-        ? ModelDownloadState.downloaded
-        : ModelDownloadState.notStarted;
+    // Migration logic for existing users
+    final savedModelId = _storage.selectedModelId;
+
+    if (savedModelId == null) {
+      // First-time user OR legacy user without saved preference
+      final downloadedModel = await _modelManager.getDownloadedModel();
+
+      if (downloadedModel != null) {
+        // Legacy user with existing download - preserve their model
+        await _storage.setSelectedModelId(downloadedModel.id);
+        _downloadState = ModelDownloadState.downloaded;
+      } else {
+        // New user - recommend based on device
+        final deviceInfo = DeviceInfoService();
+        final capabilities = await deviceInfo.getDeviceCapabilities();
+        final recommended = capabilities.getRecommendedModel();
+        await _storage.setSelectedModelId(recommended.id);
+        _downloadState = ModelDownloadState.notStarted;
+      }
+    } else {
+      // Existing user with saved preference
+      final selectedModel = _storage.selectedModel;
+      final status = await _modelManager.getModelStatus(selectedModel);
+      _downloadState = status == ModelStatus.downloaded
+          ? ModelDownloadState.downloaded
+          : ModelDownloadState.notStarted;
+    }
 
     notifyListeners();
   }
@@ -71,8 +98,11 @@ class AiChatProvider extends ChangeNotifier {
     if (_isModelLoaded) return;
     if (_downloadState != ModelDownloadState.downloaded) return;
 
+    final model = currentModel;
+
     try {
-      _isModelLoaded = await _llmService.loadModel();
+      final modelPath = await _modelManager.getModelPath(model);
+      _isModelLoaded = await _llmService.loadModel(modelPath);
       notifyListeners();
     } catch (e) {
       _isModelLoaded = false;
@@ -83,13 +113,15 @@ class AiChatProvider extends ChangeNotifier {
   Future<void> downloadModel() async {
     if (_downloadState == ModelDownloadState.downloading) return;
 
+    final model = currentModel; // Get selected model from storage
+
     _downloadState = ModelDownloadState.downloading;
     _downloadProgress = 0.0;
     _downloadError = null;
     notifyListeners();
 
     try {
-      await for (final progress in _modelManager.downloadModel()) {
+      await for (final progress in _modelManager.downloadModel(model)) {
         _downloadProgress = progress.fraction;
         _currentFile = progress.currentFile ?? '';
         notifyListeners();
@@ -113,8 +145,9 @@ class AiChatProvider extends ChangeNotifier {
   }
 
   Future<void> deleteModel() async {
+    final model = currentModel;
     await _llmService.unloadModel();
-    await _modelManager.deleteModel();
+    await _modelManager.deleteModel(model);
     _isModelLoaded = false;
     _downloadState = ModelDownloadState.notStarted;
     _downloadProgress = 0.0;

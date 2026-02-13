@@ -7,7 +7,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/activity_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/notification_service.dart';
+import '../services/storage_service.dart';
 import '../utils/constants.dart';
+import 'model_selection_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -30,6 +32,29 @@ class SettingsScreen extends StatelessWidget {
                 style: AppTypography.bodySmall),
             value: settings.use24HourFormat,
             onChanged: (value) => settings.setUse24HourFormat(value),
+          ),
+          const Divider(),
+
+          _SectionHeader(title: 'AI COACH'),
+          Consumer<StorageService>(
+            builder: (context, storage, _) {
+              return ListTile(
+                title: Text('AI Model', style: AppTypography.bodyLarge),
+                subtitle: Text(
+                  storage.selectedModel.displayName,
+                  style: AppTypography.bodySmall,
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ModelSelectionScreen(),
+                    ),
+                  );
+                },
+              );
+            },
           ),
           const Divider(),
 

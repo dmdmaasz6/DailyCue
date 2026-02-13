@@ -1,5 +1,6 @@
 package com.example.dailycue
 
+import android.app.ActivityManager
 import android.content.Context
 import ai.onnxruntime.genai.GenAIException
 import ai.onnxruntime.genai.SimpleGenAI
@@ -19,6 +20,10 @@ class OnnxInferencePlugin(
         flutterEngine.dartExecutor.binaryMessenger,
         "com.dailycue/onnx_inference"
     )
+    private val deviceInfoChannel = MethodChannel(
+        flutterEngine.dartExecutor.binaryMessenger,
+        "com.dailycue/device_info"
+    )
     private val eventChannel = EventChannel(
         flutterEngine.dartExecutor.binaryMessenger,
         "com.dailycue/onnx_inference_stream"
@@ -33,6 +38,7 @@ class OnnxInferencePlugin(
 
     init {
         methodChannel.setMethodCallHandler(this)
+        deviceInfoChannel.setMethodCallHandler(this)
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 eventSink = events
@@ -122,6 +128,13 @@ class OnnxInferencePlugin(
                 result.success(modelLoaded)
             }
 
+            "getTotalRam" -> {
+                val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                val memInfo = ActivityManager.MemoryInfo()
+                activityManager?.getMemoryInfo(memInfo)
+                result.success(memInfo.totalMem) // Returns bytes
+            }
+
             else -> result.notImplemented()
         }
     }
@@ -133,15 +146,33 @@ class OnnxInferencePlugin(
             throw Exception("Model directory not found: $path")
         }
 
-        val requiredFiles = listOf("genai_config.json", "tokenizer.json")
+        // Log all files in the model directory for debugging
+        android.util.Log.d("OnnxInferencePlugin", "Model directory: $path")
+        dir.listFiles()?.forEach { file ->
+            android.util.Log.d("OnnxInferencePlugin", "  - ${file.name} (${file.length()} bytes)")
+        }
+
+        val requiredFiles = listOf(
+            "genai_config.json",
+            "tokenizer.json",
+            "tokenizer_config.json",
+            "special_tokens_map.json"
+        )
         for (fileName in requiredFiles) {
             if (!File(dir, fileName).exists()) {
-                throw Exception("Missing required model file: $fileName")
+                throw Exception("Missing required model file: $fileName in $path")
             }
         }
 
-        genAI = SimpleGenAI(path)
-        modelLoaded = true
+        try {
+            android.util.Log.d("OnnxInferencePlugin", "Creating SimpleGenAI with path: $path")
+            genAI = SimpleGenAI(path)
+            modelLoaded = true
+            android.util.Log.d("OnnxInferencePlugin", "Model loaded successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("OnnxInferencePlugin", "Failed to load model", e)
+            throw Exception("Failed to initialize ONNX Runtime GenAI: ${e.message}")
+        }
     }
 
     @Throws(GenAIException::class)

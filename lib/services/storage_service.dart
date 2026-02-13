@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/activity.dart';
+import '../models/ai_model_config.dart';
 import '../models/chat_message.dart';
 import '../utils/constants.dart';
 
@@ -66,6 +67,18 @@ class StorageService {
 
   Future<void> setDefaultReminderOffsets(List<int> value) =>
       setSetting('defaultReminderOffsets', value);
+
+  // AI Model selection
+  String? get selectedModelId => getSetting<String>('selectedModelId');
+
+  Future<void> setSelectedModelId(String modelId) =>
+      setSetting('selectedModelId', modelId);
+
+  AiModelConfig get selectedModel {
+    final id = selectedModelId;
+    if (id == null) return AppConstants.phi35Model; // Default
+    return AppConstants.getModelById(id);
+  }
 
   // --- AI Chat History ---
 

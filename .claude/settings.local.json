@@ -7,7 +7,16 @@
       "Bash(del:*)",
       "WebFetch(domain:pub.dev)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:docs.page)"
+      "WebFetch(domain:docs.page)",
+      "Bash(flutter build:*)",
+      "Bash(flutter install:*)",
+      "Bash(flutter clean:*)",
+      "WebFetch(domain:central.sonatype.com)",
+      "Bash(flutter run:*)",
+      "Bash(timeout /t:*)",
+      "Bash(ping:*)",
+      "Bash(adb logcat:*)",
+      "Bash(./gradlew clean:*)"
     ]
   }
 }
