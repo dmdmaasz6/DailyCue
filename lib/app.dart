@@ -65,6 +65,7 @@ class DailyCueApp extends StatelessWidget {
               llmService: llmService,
               modelManager: modelManager,
               storage: storageService,
+              activityProvider: activityProvider,
             );
           },
           update: (context, activityProvider, previous) {

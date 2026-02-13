@@ -16,6 +16,13 @@ class OnnxInferencePlugin(
     flutterEngine: FlutterEngine,
 ) : MethodChannel.MethodCallHandler {
 
+    companion object {
+        private const val TAG = "OnnxInferencePlugin"
+        // Budget for prompt tokens (system message + tool definitions + conversation history).
+        // Combined with maxTokens (output) to set the total max_length for generation.
+        private const val MAX_PROMPT_TOKENS = 3584
+    }
+
     private val methodChannel = MethodChannel(
         flutterEngine.dartExecutor.binaryMessenger,
         "com.dailycue/onnx_inference"
@@ -147,9 +154,9 @@ class OnnxInferencePlugin(
         }
 
         // Log all files in the model directory for debugging
-        android.util.Log.d("OnnxInferencePlugin", "Model directory: $path")
+        android.util.Log.d(TAG, "Model directory: $path")
         dir.listFiles()?.forEach { file ->
-            android.util.Log.d("OnnxInferencePlugin", "  - ${file.name} (${file.length()} bytes)")
+            android.util.Log.d(TAG, "  - ${file.name} (${file.length()} bytes)")
         }
 
         val requiredFiles = listOf(
@@ -165,12 +172,12 @@ class OnnxInferencePlugin(
         }
 
         try {
-            android.util.Log.d("OnnxInferencePlugin", "Creating SimpleGenAI with path: $path")
+            android.util.Log.d(TAG, "Creating SimpleGenAI with path: $path")
             genAI = SimpleGenAI(path)
             modelLoaded = true
-            android.util.Log.d("OnnxInferencePlugin", "Model loaded successfully")
+            android.util.Log.d(TAG, "Model loaded successfully")
         } catch (e: Exception) {
-            android.util.Log.e("OnnxInferencePlugin", "Failed to load model", e)
+            android.util.Log.e(TAG, "Failed to load model", e)
             throw Exception("Failed to initialize ONNX Runtime GenAI: ${e.message}")
         }
     }
@@ -184,12 +191,26 @@ class OnnxInferencePlugin(
     ): String {
         if (!modelLoaded || genAI == null) throw Exception("Model not loaded")
 
+        // max_length is the TOTAL sequence length (input + output), not just output tokens.
+        // The prompt (system message, tool definitions, conversation history) can easily be
+        // 1000-3000 tokens, so we need a generous budget. Phi-3.5 supports 128K context.
+        val totalMaxLength = maxTokens + MAX_PROMPT_TOKENS
+
+        android.util.Log.d(TAG, "Starting generation: maxTokens=$maxTokens, totalMaxLength=$totalMaxLength, temp=$temperature, topP=$topP")
+        android.util.Log.d(TAG, "Prompt length (chars): ${prompt.length}")
+
         val params = genAI!!.createGeneratorParams()
-        params.setSearchOption("max_length", maxTokens.toDouble())
+        params.setSearchOption("max_length", totalMaxLength.toDouble())
         params.setSearchOption("temperature", temperature)
         params.setSearchOption("top_p", topP)
 
-        return genAI!!.generate(params, prompt, null)
+        val startTime = System.currentTimeMillis()
+        val response = genAI!!.generate(params, prompt, null)
+        val elapsed = System.currentTimeMillis() - startTime
+
+        android.util.Log.d(TAG, "Generation completed in ${elapsed}ms, response length (chars): ${response.length}")
+
+        return response
     }
 
     @Throws(GenAIException::class)
@@ -201,10 +222,16 @@ class OnnxInferencePlugin(
     ) {
         if (!modelLoaded || genAI == null) throw Exception("Model not loaded")
 
+        val totalMaxLength = maxTokens + MAX_PROMPT_TOKENS
+
+        android.util.Log.d(TAG, "Starting streaming generation: maxTokens=$maxTokens, totalMaxLength=$totalMaxLength")
+
         val params = genAI!!.createGeneratorParams()
-        params.setSearchOption("max_length", maxTokens.toDouble())
+        params.setSearchOption("max_length", totalMaxLength.toDouble())
         params.setSearchOption("temperature", temperature)
         params.setSearchOption("top_p", topP)
+
+        val startTime = System.currentTimeMillis()
 
         // SimpleGenAI.generate with a Consumer<String> listener streams
         // tokens one at a time via the callback.
@@ -214,6 +241,9 @@ class OnnxInferencePlugin(
                 eventSink?.success(token)
             }
         }
+
+        val elapsed = System.currentTimeMillis() - startTime
+        android.util.Log.d(TAG, "Streaming generation completed in ${elapsed}ms")
 
         withContext(Dispatchers.Main) {
             eventSink?.endOfStream()
