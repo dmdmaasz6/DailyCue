@@ -1,8 +1,37 @@
+import java.net.URL
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val onnxGenAiVersion = "0.12.0"
+val onnxAarFile = file("libs/onnxruntime-genai.aar")
+
+// Auto-download the ONNX Runtime GenAI AAR if it doesn't exist locally.
+// The package is not published to Maven Central so we fetch it from GitHub Releases.
+val downloadOnnxAar by tasks.registering {
+    val outputFile = onnxAarFile
+    outputs.file(outputFile)
+    doLast {
+        if (!outputFile.exists()) {
+            val url = "https://github.com/microsoft/onnxruntime-genai/releases/download/v$onnxGenAiVersion/onnxruntime-genai-android-$onnxGenAiVersion.aar"
+            logger.lifecycle("Downloading ONNX Runtime GenAI v$onnxGenAiVersion AAR …")
+            outputFile.parentFile.mkdirs()
+            URL(url).openStream().use { input ->
+                outputFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            logger.lifecycle("Downloaded to ${outputFile.absolutePath}")
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(downloadOnnxAar)
 }
 
 android {
@@ -42,9 +71,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // ONNX Runtime GenAI — local AAR (not on Maven Central).
-    // Download from: https://github.com/microsoft/onnxruntime-genai/releases
-    // Place onnxruntime-genai-android-X.Y.Z.aar in libs/ and rename to onnxruntime-genai.aar
+    // ONNX Runtime GenAI — local AAR (auto-downloaded from GitHub Releases).
     implementation(files("libs/onnxruntime-genai.aar"))
 }
 

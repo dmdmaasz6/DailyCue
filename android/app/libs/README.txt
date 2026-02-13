@@ -1,11 +1,13 @@
-Place the ONNX Runtime GenAI Android AAR file in this directory.
+ONNX Runtime GenAI Android AAR
 
-Download from:
-https://github.com/microsoft/onnxruntime-genai/releases
+This file (onnxruntime-genai.aar) is auto-downloaded by the Gradle build
+from GitHub Releases when it doesn't exist locally.
 
-Look for: onnxruntime-genai-android-X.Y.Z.aar
+  Version : 0.12.0
+  Source  : https://github.com/microsoft/onnxruntime-genai/releases
 
-Then rename it to: onnxruntime-genai.aar
+The download task is defined in build.gradle.kts. To force a re-download,
+delete onnxruntime-genai.aar and rebuild.
 
-The build.gradle.kts references this file as:
-  implementation(files("libs/onnxruntime-genai.aar"))
+NOTE: The AAR is ~33 MB and is git-ignored. Each developer's first build
+will download it automatically.
