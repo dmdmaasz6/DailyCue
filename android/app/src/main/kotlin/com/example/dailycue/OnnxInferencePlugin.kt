@@ -1,6 +1,11 @@
 package com.example.dailycue
 
 import android.content.Context
+import ai.onnxruntime.genai.Generator
+import ai.onnxruntime.genai.GeneratorParams
+import ai.onnxruntime.genai.Model
+import ai.onnxruntime.genai.Tokenizer
+import ai.onnxruntime.genai.TokenizerStream
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -26,17 +31,10 @@ class OnnxInferencePlugin(
     private var eventSink: EventChannel.EventSink? = null
     private var generationJob: Job? = null
 
-    // ONNX Runtime GenAI objects — loaded dynamically
     private var modelLoaded = false
     private var modelPath: String? = null
-
-    // Placeholder references for ONNX Runtime GenAI objects.
-    // In a full build these would be:
-    //   private var model: OgaModel? = null
-    //   private var tokenizer: OgaTokenizer? = null
-    // For now we use Any? to allow compilation without the AAR.
-    private var model: Any? = null
-    private var tokenizer: Any? = null
+    private var model: Model? = null
+    private var tokenizer: Tokenizer? = null
 
     init {
         methodChannel.setMethodCallHandler(this)
@@ -139,17 +137,15 @@ class OnnxInferencePlugin(
             throw Exception("Model directory not found: $path")
         }
 
-        // When ONNX Runtime GenAI AAR is added, this becomes:
-        // model = OgaModel(path)
-        // tokenizer = OgaTokenizer(model)
-        //
-        // For now, validate that the required files exist.
         val requiredFiles = listOf("genai_config.json", "tokenizer.json")
         for (fileName in requiredFiles) {
             if (!File(dir, fileName).exists()) {
                 throw Exception("Missing required model file: $fileName")
             }
         }
+
+        model = Model(path)
+        tokenizer = Tokenizer(model)
 
         modelPath = path
         modelLoaded = true
@@ -163,21 +159,21 @@ class OnnxInferencePlugin(
     ): String {
         if (!modelLoaded) throw Exception("Model not loaded")
 
-        // When ONNX Runtime GenAI AAR is added, this becomes:
-        // val params = OgaGeneratorParams(model)
-        // params.setSearchOption("max_length", maxTokens.toDouble())
-        // params.setSearchOption("temperature", temperature)
-        // params.setSearchOption("top_p", topP)
-        //
-        // val sequences = tokenizer!!.encode(prompt)
-        // params.setInputSequences(sequences)
-        //
-        // val output = model!!.generate(params)
-        // val response = tokenizer!!.decode(output.getSequence(0))
-        // return response
+        val params = GeneratorParams(model)
+        params.setSearchOption("max_length", maxTokens.toDouble())
+        params.setSearchOption("temperature", temperature)
+        params.setSearchOption("top_p", topP)
 
-        // Stub: return empty until ONNX Runtime GenAI is linked
-        return "[Model inference requires ONNX Runtime GenAI library]"
+        val sequences = tokenizer!!.encode(prompt)
+        params.setInputSequences(sequences)
+
+        val output = model!!.generate(params)
+        val response = tokenizer!!.decode(output.getSequence(0))
+
+        output.close()
+        params.close()
+
+        return response
     }
 
     private suspend fun generateStream(
@@ -188,40 +184,41 @@ class OnnxInferencePlugin(
     ) {
         if (!modelLoaded) throw Exception("Model not loaded")
 
-        // When ONNX Runtime GenAI AAR is added, this becomes:
-        // val params = OgaGeneratorParams(model)
-        // params.setSearchOption("max_length", maxTokens.toDouble())
-        // params.setSearchOption("temperature", temperature)
-        // params.setSearchOption("top_p", topP)
-        //
-        // val sequences = tokenizer!!.encode(prompt)
-        // params.setInputSequences(sequences)
-        //
-        // val generator = OgaGenerator(model, params)
-        // val stream = OgaTokenizerStream(tokenizer)
-        //
-        // while (!generator.isDone) {
-        //     ensureActive()
-        //     generator.computeLogits()
-        //     generator.generateNextToken()
-        //     val token = generator.getLastTokenInSequence(0)
-        //     val text = stream.decode(token)
-        //     withContext(Dispatchers.Main) {
-        //         eventSink?.success(text)
-        //     }
-        // }
+        val params = GeneratorParams(model)
+        params.setSearchOption("max_length", maxTokens.toDouble())
+        params.setSearchOption("temperature", temperature)
+        params.setSearchOption("top_p", topP)
 
-        // Stub: send placeholder token
-        withContext(Dispatchers.Main) {
-            eventSink?.success("[Model streaming requires ONNX Runtime GenAI library]")
-            eventSink?.endOfStream()
+        val sequences = tokenizer!!.encode(prompt)
+        params.setInputSequences(sequences)
+
+        val generator = Generator(model, params)
+        val stream = TokenizerStream(tokenizer)
+
+        try {
+            while (!generator.isDone) {
+                ensureActive()
+                generator.computeLogits()
+                generator.generateNextToken()
+                val token = generator.getLastTokenInSequence(0)
+                val text = stream.decode(token)
+                withContext(Dispatchers.Main) {
+                    eventSink?.success(text)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                eventSink?.endOfStream()
+            }
+        } finally {
+            stream.close()
+            generator.close()
+            params.close()
         }
     }
 
     private fun unloadModel() {
-        // When ONNX Runtime GenAI AAR is added:
-        // model?.close()
-        // tokenizer?.close()
+        tokenizer?.close()
+        model?.close()
         model = null
         tokenizer = null
         modelLoaded = false
