@@ -19,6 +19,9 @@ dependencies:
   uuid: ^4.3.3
   permission_handler: ^12.0.1
   home_widget: ^0.6.0
+  http: ^1.2.0
+  path_provider: ^2.1.2
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

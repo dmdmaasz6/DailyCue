@@ -52,6 +52,29 @@ class AppConstants {
     6: 'Saturday',
     7: 'Sunday',
   };
+
+  // AI Coach constants
+  static const String hiveBoxAiChat = 'ai_chat_history';
+  static const String modelDirectoryName = 'phi-3.5-mini-instruct-int4-cpu';
+  static const String modelDownloadUrl =
+      'https://huggingface.co/microsoft/Phi-3.5-mini-instruct-onnx/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4';
+  static const List<String> modelFiles = [
+    'added_tokens.json',
+    'genai_config.json',
+    'phi3.5-mini-instruct-cpu-int4-rtn-block-32-acc-level-4.onnx',
+    'phi3.5-mini-instruct-cpu-int4-rtn-block-32-acc-level-4.onnx.data',
+    'special_tokens_map.json',
+    'tokenizer.json',
+    'tokenizer.model',
+    'tokenizer_config.json',
+  ];
+  static const int modelApproxSizeBytes = 2400000000; // ~2.3 GB
+  static const int maxConversationTurns = 20;
+  static const int maxGenerationTokens = 512;
+  static const double modelTemperature = 0.7;
+  static const double modelTopP = 0.9;
+  static const String onnxMethodChannel = 'com.dailycue/onnx_inference';
+  static const String onnxEventChannel = 'com.dailycue/onnx_inference_stream';
 }
 
 // ---------------------------------------------------------------------------

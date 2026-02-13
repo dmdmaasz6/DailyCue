@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'screens/ai_chat_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/insights_screen.dart';
 import 'screens/routines_screen.dart';
@@ -22,6 +23,7 @@ class _AppShellState extends State<AppShell> {
     RoutinesScreen(),
     WeeklyViewScreen(),
     InsightsScreen(),
+    AiChatScreen(),
   ];
 
   @override
@@ -87,6 +89,11 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(Icons.insights_outlined),
               activeIcon: Icon(Icons.insights_rounded),
               label: 'Insights',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.auto_awesome_outlined),
+              activeIcon: Icon(Icons.auto_awesome),
+              label: 'AI Coach',
             ),
           ],
         ),

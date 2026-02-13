@@ -42,6 +42,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ONNX Runtime GenAI for on-device LLM inference.
+    // Uncomment when ready to integrate the native library:
+    // implementation("com.microsoft.onnxruntime:onnxruntime-genai-android:0.5.2")
 }
 
 flutter {

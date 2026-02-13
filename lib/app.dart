@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/activity_provider.dart';
+import 'providers/ai_chat_provider.dart';
 import 'providers/settings_provider.dart';
 import 'app_shell.dart';
+import 'services/llm_service.dart';
+import 'services/model_manager.dart';
 import 'services/notification_service.dart';
+import 'services/onnx_channel.dart';
+import 'services/prompt_builder.dart';
 import 'services/scheduler_service.dart';
 import 'services/storage_service.dart';
+import 'services/tool_executor.dart';
 import 'services/widget_service.dart';
 import 'utils/constants.dart';
 
@@ -26,6 +32,8 @@ class DailyCueApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final schedulerService = SchedulerService(notificationService);
 
+    final modelManager = ModelManager();
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -37,6 +45,30 @@ class DailyCueApp extends StatelessWidget {
             scheduler: schedulerService,
             widgetService: widgetService,
           )..loadActivities(),
+        ),
+        ChangeNotifierProxyProvider<ActivityProvider, AiChatProvider>(
+          create: (context) {
+            final activityProvider = context.read<ActivityProvider>();
+            final toolExecutor =
+                ToolExecutor(activityProvider: activityProvider);
+            final llmService = LlmService(
+              onnx: OnnxChannel(),
+              toolExecutor: toolExecutor,
+              promptBuilder: PromptBuilder(),
+              modelManager: modelManager,
+            );
+            return AiChatProvider(
+              llmService: llmService,
+              modelManager: modelManager,
+              storage: storageService,
+            );
+          },
+          update: (context, activityProvider, previous) {
+            // AiChatProvider is long-lived; the ToolExecutor inside
+            // LlmService holds a reference to ActivityProvider which
+            // stays current via Provider's proxy mechanism.
+            return previous!;
+          },
         ),
       ],
       child: _NotificationActionHandler(

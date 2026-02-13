@@ -1,15 +1,18 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/activity.dart';
+import '../models/chat_message.dart';
 import '../utils/constants.dart';
 
 class StorageService {
   late Box<Map> _activityBox;
   late Box _settingsBox;
+  late Box<Map> _aiChatBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
     _activityBox = await Hive.openBox<Map>(AppConstants.hiveBoxActivities);
     _settingsBox = await Hive.openBox(AppConstants.hiveBoxSettings);
+    _aiChatBox = await Hive.openBox<Map>(AppConstants.hiveBoxAiChat);
   }
 
   // --- Activities ---
@@ -63,4 +66,29 @@ class StorageService {
 
   Future<void> setDefaultReminderOffsets(List<int> value) =>
       setSetting('defaultReminderOffsets', value);
+
+  // --- AI Chat History ---
+
+  List<ChatMessage> getChatHistory() {
+    return _aiChatBox.values
+        .map((raw) => ChatMessage.fromJson(Map<String, dynamic>.from(raw)))
+        .toList()
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  }
+
+  Future<void> saveChatMessage(ChatMessage message) async {
+    await _aiChatBox.put(message.id, message.toJson());
+  }
+
+  Future<void> saveChatMessages(List<ChatMessage> messages) async {
+    final map = <String, Map<String, dynamic>>{};
+    for (final m in messages) {
+      map[m.id] = m.toJson();
+    }
+    await _aiChatBox.putAll(map);
+  }
+
+  Future<void> clearChatHistory() async {
+    await _aiChatBox.clear();
+  }
 }
