@@ -124,14 +124,26 @@ class LlmService {
         final toolCall = PromptBuilder.parseToolCall(response);
 
         if (toolCall == null) {
-          // No tool call — this is the final text response
-          final cleanResponse = response
-              .replaceAll('<|end|>', '')
+          // No tool call — this is the final text response.
+          // Truncate at any chat-template marker the model may have
+          // generated (the native side doesn't enforce stop sequences).
+          var cleaned = response;
+
+          // Cut off anything from the first <|user|> or <|end|> onward,
+          // since the model shouldn't be generating new turns.
+          for (final marker in ['<|user|>', '<|end|>']) {
+            final idx = cleaned.indexOf(marker);
+            if (idx >= 0) {
+              cleaned = cleaned.substring(0, idx);
+            }
+          }
+
+          cleaned = cleaned
               .replaceAll('<|assistant|>', '')
               .trim();
 
-          fullResponse += cleanResponse;
-          yield LlmTokenEvent(cleanResponse);
+          fullResponse += cleaned;
+          yield LlmTokenEvent(cleaned);
           break;
         }
 

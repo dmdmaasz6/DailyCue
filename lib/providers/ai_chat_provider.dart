@@ -7,6 +7,7 @@ import '../services/device_info_service.dart';
 import '../services/llm_service.dart';
 import '../services/model_manager.dart';
 import '../services/storage_service.dart';
+import 'activity_provider.dart';
 
 enum ModelDownloadState { notStarted, downloading, downloaded, failed }
 
@@ -14,6 +15,7 @@ class AiChatProvider extends ChangeNotifier {
   final LlmService _llmService;
   final ModelManager _modelManager;
   final StorageService _storage;
+  final ActivityProvider _activityProvider;
 
   static const _uuid = Uuid();
 
@@ -50,9 +52,11 @@ class AiChatProvider extends ChangeNotifier {
     required LlmService llmService,
     required ModelManager modelManager,
     required StorageService storage,
+    required ActivityProvider activityProvider,
   })  : _llmService = llmService,
         _modelManager = modelManager,
-        _storage = storage {
+        _storage = storage,
+        _activityProvider = activityProvider {
     _init();
   }
 
@@ -299,12 +303,16 @@ class AiChatProvider extends ChangeNotifier {
   }
 
   int _getTodayActivityCount() {
-    // Access through tool executor's activity provider
-    // This is a simplified count; the actual count comes from the tool
-    return 0; // Will be populated when model runs get_today_schedule
+    final now = DateTime.now();
+    return _activityProvider.activities
+        .where((a) => a.enabled && a.isActiveOn(now.weekday))
+        .length;
   }
 
   int _getTodayCompletedCount() {
-    return 0; // Will be populated when model runs get_today_schedule
+    final now = DateTime.now();
+    return _activityProvider.activities
+        .where((a) => a.enabled && a.isActiveOn(now.weekday) && a.isCompletedToday())
+        .length;
   }
 }
