@@ -39,11 +39,15 @@ class DailyCueApp extends StatelessWidget {
           )..loadActivities(),
         ),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: _buildTheme(),
-        home: const AppShell(),
+      child: _NotificationActionHandler(
+        notificationService: notificationService,
+        storageService: storageService,
+        child: MaterialApp(
+          title: AppConstants.appName,
+          debugShowCheckedModeBanner: false,
+          theme: _buildTheme(),
+          home: const AppShell(),
+        ),
       ),
     );
   }
@@ -262,4 +266,64 @@ class DailyCueApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sits inside the Provider tree so it can route notification actions
+/// through [ActivityProvider], keeping the UI in sync.
+class _NotificationActionHandler extends StatefulWidget {
+  final NotificationService notificationService;
+  final StorageService storageService;
+  final Widget child;
+
+  const _NotificationActionHandler({
+    required this.notificationService,
+    required this.storageService,
+    required this.child,
+  });
+
+  @override
+  State<_NotificationActionHandler> createState() =>
+      _NotificationActionHandlerState();
+}
+
+class _NotificationActionHandlerState
+    extends State<_NotificationActionHandler> {
+  @override
+  void initState() {
+    super.initState();
+    // Use addPostFrameCallback to guarantee the Provider tree is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.notificationService.onAction = _handleAction;
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.notificationService.onAction = null;
+    super.dispose();
+  }
+
+  void _handleAction(String actionId, String? payload) {
+    if (payload == null) return;
+    final parts = payload.split('|');
+    if (parts.isEmpty) return;
+    final activityId = parts[0];
+
+    final provider = context.read<ActivityProvider>();
+
+    if (actionId == AppConstants.actionComplete) {
+      provider.markActivityComplete(activityId);
+    } else if (actionId == AppConstants.actionSnooze) {
+      final activity = provider.getActivity(activityId);
+      if (activity != null) {
+        final snoozeMinutes = activity.snoozeDurationMinutes > 0
+            ? activity.snoozeDurationMinutes
+            : widget.storageService.defaultSnooze;
+        provider.snoozeActivity(activityId, snoozeMinutes);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

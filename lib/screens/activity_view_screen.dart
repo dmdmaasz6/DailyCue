@@ -39,7 +39,7 @@ class ActivityViewScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with completion status
-            _buildHeaderCard(context, categoryColor, isCompletedToday, activityProvider),
+            _buildHeaderCard(context, categoryColor, isCompletedToday, activityProvider, currentActivity),
             const SizedBox(height: AppSpacing.md),
 
             // Details Section
@@ -50,15 +50,15 @@ class ActivityViewScreen extends StatelessWidget {
               children: [
                 _buildDetailRow(
                   'Title',
-                  activity.title,
+                  currentActivity.title,
                   Icons.title_rounded,
                   categoryColor,
                 ),
-                if (activity.description != null && activity.description!.isNotEmpty) ...[
+                if (currentActivity.description != null && currentActivity.description!.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   _buildDetailRow(
                     'Description',
-                    activity.description!,
+                    currentActivity.description!,
                     Icons.description_outlined,
                     categoryColor,
                   ),
@@ -66,8 +66,8 @@ class ActivityViewScreen extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 _buildDetailRow(
                   'Category',
-                  ActivityCategories.label(activity.category),
-                  ActivityCategories.icon(activity.category),
+                  ActivityCategories.label(currentActivity.category),
+                  ActivityCategories.icon(currentActivity.category),
                   categoryColor,
                 ),
               ],
@@ -80,14 +80,14 @@ class ActivityViewScreen extends StatelessWidget {
               icon: Icons.schedule_outlined,
               accentColor: categoryColor,
               children: [
-                _buildTimeDisplay(settings, categoryColor),
+                _buildTimeDisplay(settings, categoryColor, currentActivity),
                 const SizedBox(height: AppSpacing.md),
-                _buildRepeatDaysDisplay(categoryColor),
+                _buildRepeatDaysDisplay(categoryColor, currentActivity),
                 const SizedBox(height: AppSpacing.md),
                 _buildStatusRow(
-                  activity.enabled ? 'Active' : 'Disabled',
-                  activity.enabled ? Icons.check_circle_outline : Icons.cancel_outlined,
-                  activity.enabled ? AppColors.success : AppColors.error,
+                  currentActivity.enabled ? 'Active' : 'Disabled',
+                  currentActivity.enabled ? Icons.check_circle_outline : Icons.cancel_outlined,
+                  currentActivity.enabled ? AppColors.success : AppColors.error,
                 ),
               ],
             ),
@@ -99,17 +99,17 @@ class ActivityViewScreen extends StatelessWidget {
               icon: Icons.notifications_outlined,
               accentColor: categoryColor,
               children: [
-                _buildRemindersDisplay(categoryColor),
+                _buildRemindersDisplay(categoryColor, currentActivity),
                 const SizedBox(height: AppSpacing.md),
                 _buildStatusRow(
-                  activity.alarmEnabled ? 'Alarm enabled' : 'Alarm disabled',
+                  currentActivity.alarmEnabled ? 'Alarm enabled' : 'Alarm disabled',
                   Icons.alarm_rounded,
-                  activity.alarmEnabled ? categoryColor : AppColors.textTertiary,
+                  currentActivity.alarmEnabled ? categoryColor : AppColors.textTertiary,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _buildDetailRow(
                   'Snooze duration',
-                  '${activity.snoozeDurationMinutes} minutes',
+                  '${currentActivity.snoozeDurationMinutes} minutes',
                   Icons.snooze_rounded,
                   categoryColor,
                 ),
@@ -123,18 +123,18 @@ class ActivityViewScreen extends StatelessWidget {
               icon: Icons.history_rounded,
               accentColor: categoryColor,
               children: [
-                _buildCompletionStats(categoryColor),
+                _buildCompletionStats(categoryColor, currentActivity),
               ],
             ),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomActions(context, categoryColor, isCompletedToday, activityProvider),
+      bottomNavigationBar: _buildBottomActions(context, categoryColor, isCompletedToday, activityProvider, currentActivity),
     );
   }
 
-  Widget _buildHeaderCard(BuildContext context, Color categoryColor, bool isCompletedToday, ActivityProvider provider) {
+  Widget _buildHeaderCard(BuildContext context, Color categoryColor, bool isCompletedToday, ActivityProvider provider, Activity currentActivity) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -158,7 +158,7 @@ class ActivityViewScreen extends StatelessWidget {
                   borderRadius: AppRadii.borderRadiusMd,
                 ),
                 child: Icon(
-                  ActivityCategories.icon(activity.category),
+                  ActivityCategories.icon(currentActivity.category),
                   color: categoryColor,
                   size: AppIconSizes.xl,
                 ),
@@ -169,7 +169,7 @@ class ActivityViewScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      activity.title,
+                      currentActivity.title,
                       style: AppTypography.headingLarge.copyWith(
                         color: categoryColor,
                         fontWeight: FontWeight.bold,
@@ -177,7 +177,7 @@ class ActivityViewScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      ActivityCategories.label(activity.category),
+                      ActivityCategories.label(currentActivity.category),
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -224,10 +224,10 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeDisplay(SettingsProvider settings, Color accentColor) {
+  Widget _buildTimeDisplay(SettingsProvider settings, Color accentColor, Activity currentActivity) {
     final timeStr = settings.use24HourFormat
-        ? TimeUtils.format24h(activity.timeOfDay)
-        : TimeUtils.format12h(activity.timeOfDay);
+        ? TimeUtils.format24h(currentActivity.timeOfDay)
+        : TimeUtils.format12h(currentActivity.timeOfDay);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -266,8 +266,8 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRepeatDaysDisplay(Color accentColor) {
-    final daysText = TimeUtils.repeatSummary(activity.repeatDays);
+  Widget _buildRepeatDaysDisplay(Color accentColor, Activity currentActivity) {
+    final daysText = TimeUtils.repeatSummary(currentActivity.repeatDays);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -301,22 +301,22 @@ class ActivityViewScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (!activity.isDaily) ...[
+          if (!currentActivity.isDaily) ...[
             const SizedBox(width: AppSpacing.sm),
-            _buildDayDots(accentColor),
+            _buildDayDots(accentColor, currentActivity),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildDayDots(Color accentColor) {
+  Widget _buildDayDots(Color accentColor, Activity currentActivity) {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(7, (i) {
         final dayNum = i + 1;
-        final isActive = activity.isActiveOn(dayNum);
+        final isActive = currentActivity.isActiveOn(dayNum);
         return Container(
           margin: EdgeInsets.only(left: i > 0 ? AppSpacing.xxs : 0),
           child: Container(
@@ -346,8 +346,8 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRemindersDisplay(Color accentColor) {
-    if (activity.earlyReminderOffsets.isEmpty) {
+  Widget _buildRemindersDisplay(Color accentColor, Activity currentActivity) {
+    if (currentActivity.earlyReminderOffsets.isEmpty) {
       return _buildDetailRow(
         'Reminders',
         'None',
@@ -356,7 +356,7 @@ class ActivityViewScreen extends StatelessWidget {
       );
     }
 
-    final reminderTexts = activity.earlyReminderOffsets
+    final reminderTexts = currentActivity.earlyReminderOffsets
         .map((offset) => '$offset min before')
         .join(', ');
 
@@ -397,15 +397,15 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompletionStats(Color accentColor) {
+  Widget _buildCompletionStats(Color accentColor, Activity currentActivity) {
     final today = DateTime.now();
     final weekAgo = today.subtract(const Duration(days: 7));
     final monthAgo = today.subtract(const Duration(days: 30));
 
-    final todayCount = activity.isCompletedToday() ? 1 : 0;
-    final weekCount = activity.getCompletionCount(weekAgo, today);
-    final monthCount = activity.getCompletionCount(monthAgo, today);
-    final totalCount = activity.completionHistory.length;
+    final todayCount = currentActivity.isCompletedToday() ? 1 : 0;
+    final weekCount = currentActivity.getCompletionCount(weekAgo, today);
+    final monthCount = currentActivity.getCompletionCount(monthAgo, today);
+    final totalCount = currentActivity.completionHistory.length;
 
     return Column(
       children: [
@@ -452,9 +452,9 @@ class ActivityViewScreen extends StatelessWidget {
             ),
           ],
         ),
-        if (activity.completionHistory.isNotEmpty) ...[
+        if (currentActivity.completionHistory.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          _buildRecentCompletions(accentColor),
+          _buildRecentCompletions(accentColor, currentActivity),
         ],
       ],
     );
@@ -490,8 +490,8 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentCompletions(Color accentColor) {
-    final recentCompletions = activity.completionHistory
+  Widget _buildRecentCompletions(Color accentColor, Activity currentActivity) {
+    final recentCompletions = currentActivity.completionHistory
         .toList()
         ..sort((a, b) => b.compareTo(a));
     final displayCount = recentCompletions.length > 5 ? 5 : recentCompletions.length;
@@ -582,7 +582,7 @@ class ActivityViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomActions(BuildContext context, Color categoryColor, bool isCompletedToday, ActivityProvider provider) {
+  Widget _buildBottomActions(BuildContext context, Color categoryColor, bool isCompletedToday, ActivityProvider provider, Activity currentActivity) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -610,7 +610,7 @@ class ActivityViewScreen extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: isCompletedToday
                     ? null
-                    : () => _markComplete(context, provider),
+                    : () => _markComplete(context, provider, currentActivity),
                 icon: Icon(
                   isCompletedToday ? Icons.check_circle_rounded : Icons.check_circle_outline,
                 ),
@@ -640,15 +640,15 @@ class ActivityViewScreen extends StatelessWidget {
     }
   }
 
-  void _markComplete(BuildContext context, ActivityProvider provider) {
-    provider.markActivityComplete(activity.id);
+  void _markComplete(BuildContext context, ActivityProvider provider, Activity currentActivity) {
+    provider.markActivityComplete(currentActivity.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Icon(Icons.check_circle_rounded, color: Colors.white, size: AppIconSizes.sm),
             const SizedBox(width: AppSpacing.sm),
-            Text('${activity.title} marked as complete'),
+            Text('${currentActivity.title} marked as complete'),
           ],
         ),
         backgroundColor: AppColors.success,
