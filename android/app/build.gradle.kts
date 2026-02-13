@@ -42,7 +42,10 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    implementation("com.microsoft.onnxruntime:onnxruntime-genai-android:0.5.2")
+    // ONNX Runtime GenAI — local AAR (not on Maven Central).
+    // Download from: https://github.com/microsoft/onnxruntime-genai/releases
+    // Place onnxruntime-genai-android-X.Y.Z.aar in libs/ and rename to onnxruntime-genai.aar
+    implementation(files("libs/onnxruntime-genai.aar"))
 }
 
 flutter {

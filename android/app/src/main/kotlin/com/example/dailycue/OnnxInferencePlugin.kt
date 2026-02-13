@@ -1,11 +1,8 @@
 package com.example.dailycue
 
 import android.content.Context
-import ai.onnxruntime.genai.Generator
-import ai.onnxruntime.genai.GeneratorParams
-import ai.onnxruntime.genai.Model
-import ai.onnxruntime.genai.Tokenizer
-import ai.onnxruntime.genai.TokenizerStream
+import ai.onnxruntime.genai.GenAIException
+import ai.onnxruntime.genai.SimpleGenAI
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -32,9 +29,7 @@ class OnnxInferencePlugin(
     private var generationJob: Job? = null
 
     private var modelLoaded = false
-    private var modelPath: String? = null
-    private var model: Model? = null
-    private var tokenizer: Tokenizer? = null
+    private var genAI: SimpleGenAI? = null
 
     init {
         methodChannel.setMethodCallHandler(this)
@@ -102,7 +97,7 @@ class OnnxInferencePlugin(
                     try {
                         generateStream(prompt, maxTokens, temperature, topP)
                     } catch (e: CancellationException) {
-                        // Generation was stopped
+                        // Generation was stopped by user
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
                             eventSink?.error("STREAM_FAILED", e.message, null)
@@ -131,6 +126,7 @@ class OnnxInferencePlugin(
         }
     }
 
+    @Throws(GenAIException::class)
     private fun loadModel(path: String) {
         val dir = File(path)
         if (!dir.exists() || !dir.isDirectory) {
@@ -144,85 +140,59 @@ class OnnxInferencePlugin(
             }
         }
 
-        model = Model(path)
-        tokenizer = Tokenizer(model)
-
-        modelPath = path
+        genAI = SimpleGenAI(path)
         modelLoaded = true
     }
 
+    @Throws(GenAIException::class)
     private fun generate(
         prompt: String,
         maxTokens: Int,
         temperature: Double,
         topP: Double,
     ): String {
-        if (!modelLoaded) throw Exception("Model not loaded")
+        if (!modelLoaded || genAI == null) throw Exception("Model not loaded")
 
-        val params = GeneratorParams(model)
+        val params = genAI!!.createGeneratorParams()
         params.setSearchOption("max_length", maxTokens.toDouble())
         params.setSearchOption("temperature", temperature)
         params.setSearchOption("top_p", topP)
 
-        val sequences = tokenizer!!.encode(prompt)
-        params.setInputSequences(sequences)
-
-        val output = model!!.generate(params)
-        val response = tokenizer!!.decode(output.getSequence(0))
-
-        output.close()
-        params.close()
-
-        return response
+        return genAI!!.generate(params, prompt, null)
     }
 
+    @Throws(GenAIException::class)
     private suspend fun generateStream(
         prompt: String,
         maxTokens: Int,
         temperature: Double,
         topP: Double,
     ) {
-        if (!modelLoaded) throw Exception("Model not loaded")
+        if (!modelLoaded || genAI == null) throw Exception("Model not loaded")
 
-        val params = GeneratorParams(model)
+        val params = genAI!!.createGeneratorParams()
         params.setSearchOption("max_length", maxTokens.toDouble())
         params.setSearchOption("temperature", temperature)
         params.setSearchOption("top_p", topP)
 
-        val sequences = tokenizer!!.encode(prompt)
-        params.setInputSequences(sequences)
-
-        val generator = Generator(model, params)
-        val stream = TokenizerStream(tokenizer)
-
-        try {
-            while (!generator.isDone) {
-                ensureActive()
-                generator.computeLogits()
-                generator.generateNextToken()
-                val token = generator.getLastTokenInSequence(0)
-                val text = stream.decode(token)
-                withContext(Dispatchers.Main) {
-                    eventSink?.success(text)
-                }
+        // SimpleGenAI.generate with a Consumer<String> listener streams
+        // tokens one at a time via the callback.
+        genAI!!.generate(params, prompt) { token ->
+            if (generationJob?.isCancelled == true) return@generate
+            runBlocking(Dispatchers.Main) {
+                eventSink?.success(token)
             }
-            withContext(Dispatchers.Main) {
-                eventSink?.endOfStream()
-            }
-        } finally {
-            stream.close()
-            generator.close()
-            params.close()
+        }
+
+        withContext(Dispatchers.Main) {
+            eventSink?.endOfStream()
         }
     }
 
     private fun unloadModel() {
-        tokenizer?.close()
-        model?.close()
-        model = null
-        tokenizer = null
+        genAI?.close()
+        genAI = null
         modelLoaded = false
-        modelPath = null
     }
 
     fun dispose() {
