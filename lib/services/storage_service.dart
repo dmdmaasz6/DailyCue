@@ -1,6 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/activity.dart';
-import '../models/ai_model_config.dart';
 import '../models/chat_message.dart';
 import '../utils/constants.dart';
 
@@ -51,6 +50,10 @@ class StorageService {
     await _settingsBox.put(key, value);
   }
 
+  Future<void> deleteSetting(String key) async {
+    await _settingsBox.delete(key);
+  }
+
   // Common settings accessors
 
   bool get use24HourFormat => getSetting<bool>('use24HourFormat', defaultValue: true) ?? true;
@@ -68,17 +71,23 @@ class StorageService {
   Future<void> setDefaultReminderOffsets(List<int> value) =>
       setSetting('defaultReminderOffsets', value);
 
-  // AI Model selection
-  String? get selectedModelId => getSetting<String>('selectedModelId');
+  // --- OpenAI Settings ---
 
-  Future<void> setSelectedModelId(String modelId) =>
-      setSetting('selectedModelId', modelId);
+  /// OpenAI API key (stored on device only).
+  String? get openaiApiKey => getSetting<String>('openaiApiKey');
 
-  AiModelConfig get selectedModel {
-    final id = selectedModelId;
-    if (id == null) return AppConstants.phi35Model; // Default
-    return AppConstants.getModelById(id);
-  }
+  Future<void> setOpenaiApiKey(String key) =>
+      setSetting('openaiApiKey', key);
+
+  Future<void> clearOpenaiApiKey() => deleteSetting('openaiApiKey');
+
+  /// OpenAI model name (default: gpt-4o-mini).
+  String get openaiModel =>
+      getSetting<String>('openaiModel', defaultValue: 'gpt-4o-mini') ??
+      'gpt-4o-mini';
+
+  Future<void> setOpenaiModel(String model) =>
+      setSetting('openaiModel', model);
 
   // --- AI Chat History ---
 

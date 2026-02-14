@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:uuid/uuid.dart';
 import '../models/chat_message.dart';
-import '../utils/constants.dart';
-import 'model_manager.dart';
-import 'onnx_channel.dart';
-import 'prompt_builder.dart';
+import 'llm_backend.dart';
 import 'tool_executor.dart';
 
 // Events emitted during LLM chat generation.
@@ -45,11 +42,8 @@ class LlmErrorEvent extends LlmEvent {
 }
 
 class LlmService {
-  final OnnxChannel _onnx;
+  LlmBackend _backend;
   final ToolExecutor _toolExecutor;
-  final PromptBuilder _promptBuilder;
-  PromptBuilder get promptBuilder => _promptBuilder;
-  final ModelManager _modelManager;
 
   static const _uuid = Uuid();
   static const int _maxToolRounds = 3;
@@ -58,24 +52,15 @@ class LlmService {
   bool get isGenerating => _isGenerating;
 
   LlmService({
-    required OnnxChannel onnx,
+    required LlmBackend backend,
     required ToolExecutor toolExecutor,
-    required PromptBuilder promptBuilder,
-    required ModelManager modelManager,
-  })  : _onnx = onnx,
-        _toolExecutor = toolExecutor,
-        _promptBuilder = promptBuilder,
-        _modelManager = modelManager;
+  })  : _backend = backend,
+        _toolExecutor = toolExecutor;
 
-  Future<bool> loadModel(String modelPath) async {
-    return _onnx.loadModel(modelPath);
+  /// Swap the active backend (e.g. when switching between local and online).
+  void setBackend(LlmBackend backend) {
+    _backend = backend;
   }
-
-  Future<void> unloadModel() async {
-    await _onnx.unloadModel();
-  }
-
-  Future<bool> isModelLoaded() => _onnx.isModelLoaded();
 
   /// Main chat method. Takes user message and conversation history,
   /// yields events as the LLM generates a response (with tool calls).
@@ -104,50 +89,24 @@ class LlmService {
       var toolRound = 0;
 
       while (toolRound <= _maxToolRounds) {
-        // Build prompt
-        final prompt = _promptBuilder.buildPrompt(
+        // Generate via the active backend
+        final result = await _backend.generate(
           messages: messages,
           tools: _toolExecutor.tools,
           contextSnapshot: contextSnapshot,
         );
 
-        // Generate response
-        final response = await _onnx.generate(
-          prompt,
-          maxTokens: AppConstants.maxGenerationTokens,
-          temperature: AppConstants.modelTemperature,
-          topP: AppConstants.modelTopP,
-          stopSequences: ['<|end|>', '<|user|>'],
-        );
-
-        // Check for tool call in response
-        final toolCall = PromptBuilder.parseToolCall(response);
-
-        if (toolCall == null) {
-          // No tool call — this is the final text response.
-          // Truncate at any chat-template marker the model may have
-          // generated (the native side doesn't enforce stop sequences).
-          var cleaned = response;
-
-          // Cut off anything from the first <|user|> or <|end|> onward,
-          // since the model shouldn't be generating new turns.
-          for (final marker in ['<|user|>', '<|end|>']) {
-            final idx = cleaned.indexOf(marker);
-            if (idx >= 0) {
-              cleaned = cleaned.substring(0, idx);
-            }
-          }
-
-          cleaned = cleaned
-              .replaceAll('<|assistant|>', '')
-              .trim();
-
-          fullResponse += cleaned;
-          yield LlmTokenEvent(cleaned);
+        if (!result.hasToolCall) {
+          // Final text response
+          final text = result.textContent;
+          fullResponse += text;
+          yield LlmTokenEvent(text);
           break;
         }
 
         // There's a tool call
+        final toolCall = result.toolCall!;
+
         // Emit any text before the tool call
         if (toolCall.textBefore.isNotEmpty) {
           fullResponse += '${toolCall.textBefore}\n';
@@ -160,9 +119,10 @@ class LlmService {
         messages.add(ChatMessage(
           id: _uuid.v4(),
           role: ChatRole.toolCall,
-          content: toolCall.fullMatch,
+          content: 'Calling ${toolCall.name}...',
           toolName: toolCall.name,
           toolArgs: toolCall.arguments,
+          toolCallId: toolCall.id,
         ));
 
         // Check if confirmation needed
@@ -183,6 +143,7 @@ class LlmService {
               content: '{"error": "User declined this action"}',
               toolName: toolCall.name,
               toolSuccess: false,
+              toolCallId: toolCall.id,
             ));
             toolRound++;
             continue;
@@ -190,20 +151,21 @@ class LlmService {
         }
 
         // Execute the tool
-        final result = await _toolExecutor.execute(
+        final toolResult = await _toolExecutor.execute(
           toolCall.name,
           toolCall.arguments,
         );
 
-        yield LlmToolResultEvent(toolCall.name, result);
+        yield LlmToolResultEvent(toolCall.name, toolResult);
 
         // Add tool result to conversation
         messages.add(ChatMessage(
           id: _uuid.v4(),
           role: ChatRole.toolResult,
-          content: result,
+          content: toolResult,
           toolName: toolCall.name,
           toolSuccess: true,
+          toolCallId: toolCall.id,
         ));
 
         toolRound++;
@@ -218,7 +180,7 @@ class LlmService {
   }
 
   Future<void> stopGeneration() async {
-    await _onnx.stopGeneration();
+    await _backend.stopGeneration();
     _isGenerating = false;
   }
 }

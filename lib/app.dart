@@ -6,10 +6,8 @@ import 'providers/ai_chat_provider.dart';
 import 'providers/settings_provider.dart';
 import 'app_shell.dart';
 import 'services/llm_service.dart';
-import 'services/model_manager.dart';
 import 'services/notification_service.dart';
-import 'services/onnx_channel.dart';
-import 'services/prompt_builder.dart';
+import 'services/openai_backend.dart';
 import 'services/scheduler_service.dart';
 import 'services/storage_service.dart';
 import 'services/tool_executor.dart';
@@ -32,8 +30,6 @@ class DailyCueApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final schedulerService = SchedulerService(notificationService);
 
-    final modelManager = ModelManager();
-
     return MultiProvider(
       providers: [
         // StorageService - make it available to all widgets
@@ -55,15 +51,20 @@ class DailyCueApp extends StatelessWidget {
             final activityProvider = context.read<ActivityProvider>();
             final toolExecutor =
                 ToolExecutor(activityProvider: activityProvider);
-            final llmService = LlmService(
-              onnx: OnnxChannel(),
-              toolExecutor: toolExecutor,
-              promptBuilder: PromptBuilder(),
-              modelManager: modelManager,
+
+            final apiKey = storageService.openaiApiKey;
+            final backend = OpenAiBackend(
+              apiKey: apiKey ?? '',
+              model: storageService.openaiModel,
             );
+
+            final llmService = LlmService(
+              backend: backend,
+              toolExecutor: toolExecutor,
+            );
+
             return AiChatProvider(
               llmService: llmService,
-              modelManager: modelManager,
               storage: storageService,
               activityProvider: activityProvider,
             );

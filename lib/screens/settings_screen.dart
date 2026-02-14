@@ -5,11 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../providers/activity_provider.dart';
+import '../providers/ai_chat_provider.dart';
 import '../providers/settings_provider.dart';
-import '../services/notification_service.dart';
-import '../services/storage_service.dart';
+import '../services/openai_backend.dart';
 import '../utils/constants.dart';
-import 'model_selection_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -36,26 +35,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           _SectionHeader(title: 'AI COACH'),
-          Consumer<StorageService>(
-            builder: (context, storage, _) {
-              return ListTile(
-                title: Text('AI Model', style: AppTypography.bodyLarge),
-                subtitle: Text(
-                  storage.selectedModel.displayName,
-                  style: AppTypography.bodySmall,
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ModelSelectionScreen(),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+          _AiSettingsSection(),
           const Divider(),
 
           _SectionHeader(title: 'DEFAULTS'),
@@ -352,6 +332,171 @@ class _NotificationHealthTilesState extends State<_NotificationHealthTiles>
         ),
         const Divider(),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI Settings section (API key + model picker)
+// ---------------------------------------------------------------------------
+
+class _AiSettingsSection extends StatefulWidget {
+  @override
+  State<_AiSettingsSection> createState() => _AiSettingsSectionState();
+}
+
+class _AiSettingsSectionState extends State<_AiSettingsSection> {
+  final _apiKeyController = TextEditingController();
+  bool _obscureApiKey = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings = context.read<SettingsProvider>();
+    _apiKeyController.text = settings.openaiApiKey ?? '';
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  void _saveApiKey() async {
+    final settings = context.read<SettingsProvider>();
+    final key = _apiKeyController.text.trim();
+    if (key.isEmpty) {
+      await settings.clearOpenaiApiKey();
+    } else {
+      await settings.setOpenaiApiKey(key);
+    }
+
+    // Update the backend with the new key
+    if (key.isNotEmpty) {
+      final chatProvider = context.read<AiChatProvider>();
+      final backend = OpenAiBackend(
+        apiKey: key,
+        model: settings.openaiModel,
+      );
+      await chatProvider.switchBackend(backend);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('API key saved')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // API Key input
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: TextField(
+            controller: _apiKeyController,
+            obscureText: _obscureApiKey,
+            decoration: InputDecoration(
+              labelText: 'OpenAI API Key',
+              hintText: 'sk-...',
+              helperText: 'Stored only on this device',
+              helperStyle: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _obscureApiKey
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureApiKey = !_obscureApiKey;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.check_rounded, size: 20),
+                    onPressed: _saveApiKey,
+                    tooltip: 'Save API key',
+                  ),
+                ],
+              ),
+            ),
+            onSubmitted: (_) => _saveApiKey(),
+          ),
+        ),
+
+        // Model selection
+        ListTile(
+          title:
+              Text('OpenAI Model', style: AppTypography.bodyLarge),
+          subtitle: Text(
+            settings.openaiModel,
+            style: AppTypography.bodySmall,
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => _showOpenAiModelPicker(context, settings),
+        ),
+      ],
+    );
+  }
+
+  void _showOpenAiModelPicker(
+      BuildContext context, SettingsProvider settings) {
+    const models = [
+      ('gpt-4o-mini', 'GPT-4o Mini', 'Fast and affordable'),
+      ('gpt-4o', 'GPT-4o', 'Most capable, higher cost'),
+      ('gpt-3.5-turbo', 'GPT-3.5 Turbo', 'Cheapest option'),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title:
+            Text('OpenAI Model', style: AppTypography.headingMedium),
+        children: models.map((m) {
+          final (id, name, desc) = m;
+          return SimpleDialogOption(
+            onPressed: () {
+              settings.setOpenaiModel(id);
+              Navigator.pop(ctx);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: AppTypography.bodyLarge),
+                        Text(desc, style: AppTypography.bodySmall),
+                      ],
+                    ),
+                  ),
+                  if (id == settings.openaiModel)
+                    const Icon(Icons.check_rounded,
+                        color: AppColors.primary),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }
