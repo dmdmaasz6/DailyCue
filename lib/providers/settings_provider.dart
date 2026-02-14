@@ -24,4 +24,35 @@ class SettingsProvider extends ChangeNotifier {
     await _storage.setDefaultReminderOffsets(value);
     notifyListeners();
   }
+
+  // --- AI Provider Settings ---
+
+  String get aiProvider => _storage.aiProvider;
+  bool get isOnlineProvider => _storage.isOnlineProvider;
+  String? get openaiApiKey => _storage.openaiApiKey;
+  String get openaiModel => _storage.openaiModel;
+
+  Future<void> setAiProvider(String provider) async {
+    await _storage.setAiProvider(provider);
+    notifyListeners();
+  }
+
+  Future<void> setOpenaiApiKey(String key) async {
+    await _storage.setOpenaiApiKey(key);
+    notifyListeners();
+  }
+
+  Future<void> clearOpenaiApiKey() async {
+    await _storage.clearOpenaiApiKey();
+    notifyListeners();
+  }
+
+  Future<void> setOpenaiModel(String model) async {
+    await _storage.setOpenaiModel(model);
+    notifyListeners();
+  }
+
+  /// Whether the OpenAI integration is fully configured.
+  bool get isOpenaiConfigured =>
+      _storage.openaiApiKey != null && _storage.openaiApiKey!.isNotEmpty;
 }

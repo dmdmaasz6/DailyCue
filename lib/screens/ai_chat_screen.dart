@@ -5,6 +5,7 @@ import '../providers/ai_chat_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/chat_message_bubble.dart';
 import '../widgets/model_download_card.dart';
+import 'settings_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -51,30 +52,46 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget build(BuildContext context) {
     return Consumer<AiChatProvider>(
       builder: (context, provider, _) {
-        final showDownloadCard =
-            provider.downloadState != ModelDownloadState.downloaded;
+        final isOnline = provider.isOnlineMode;
+
+        // Determine what to show in the body
+        final bool showChat;
+        final bool showDownloadCard;
+        final bool showApiKeySetup;
+
+        if (isOnline) {
+          showApiKeySetup = !provider.isReady;
+          showDownloadCard = false;
+          showChat = !showApiKeySetup;
+        } else {
+          showApiKeySetup = false;
+          showDownloadCard =
+              provider.downloadState != ModelDownloadState.downloaded;
+          showChat = !showDownloadCard;
+        }
 
         return Scaffold(
           appBar: AppBar(
             title: Row(
               children: [
                 Icon(
-                  Icons.auto_awesome,
+                  isOnline ? Icons.cloud_outlined : Icons.auto_awesome,
                   size: AppIconSizes.sm,
                   color: AppColors.primary,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                const Text('AI Coach'),
+                Text(isOnline ? 'AI Coach (Online)' : 'AI Coach'),
               ],
             ),
             actions: [
-              if (!showDownloadCard && provider.messages.isNotEmpty)
+              if (showChat && provider.messages.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _showClearDialog(context, provider),
                   tooltip: 'Clear chat',
                 ),
-              if (provider.downloadState == ModelDownloadState.downloaded)
+              if (!isOnline &&
+                  provider.downloadState == ModelDownloadState.downloaded)
                 PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'delete_model') {
@@ -97,50 +114,64 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
             ],
           ),
-          body: showDownloadCard
-              ? ModelDownloadCard(
-                  downloadState: provider.downloadState,
-                  downloadProgress: provider.downloadProgress,
-                  downloadError: provider.downloadError,
-                  currentFile: provider.currentFile,
-                  onDownload: () => provider.downloadModel(),
-                  onCancel: () => provider.cancelDownload(),
-                  onRetry: () => provider.downloadModel(),
-                )
-              : Column(
-                  children: [
-                    // Chat messages
-                    Expanded(
-                      child: provider.messages.isEmpty
-                          ? _EmptyState(
-                              onSuggestionTap: (text) {
-                                _textController.text = text;
-                                _sendMessage(provider);
-                              },
-                            )
-                          : _buildMessageList(provider),
-                    ),
-
-                    // Confirmation card (if pending)
-                    if (provider.hasPendingConfirmation &&
-                        provider.pendingToolName != null)
-                      ToolConfirmationCard(
-                        toolName: provider.pendingToolName!,
-                        arguments: provider.pendingToolArgs ?? {},
-                        onApprove: () => provider.confirmToolAction(true),
-                        onDecline: () => provider.confirmToolAction(false),
+          body: showApiKeySetup
+              ? _ApiKeySetupCard(
+                  onOpenSettings: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsScreen(),
                       ),
+                    );
+                  },
+                )
+              : showDownloadCard
+                  ? ModelDownloadCard(
+                      downloadState: provider.downloadState,
+                      downloadProgress: provider.downloadProgress,
+                      downloadError: provider.downloadError,
+                      currentFile: provider.currentFile,
+                      onDownload: () => provider.downloadModel(),
+                      onCancel: () => provider.cancelDownload(),
+                      onRetry: () => provider.downloadModel(),
+                    )
+                  : Column(
+                      children: [
+                        // Chat messages
+                        Expanded(
+                          child: provider.messages.isEmpty
+                              ? _EmptyState(
+                                  isOnline: isOnline,
+                                  onSuggestionTap: (text) {
+                                    _textController.text = text;
+                                    _sendMessage(provider);
+                                  },
+                                )
+                              : _buildMessageList(provider),
+                        ),
 
-                    // Input bar
-                    _InputBar(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      isGenerating: provider.isGenerating,
-                      onSend: () => _sendMessage(provider),
-                      onStop: () => provider.stopGeneration(),
+                        // Confirmation card (if pending)
+                        if (provider.hasPendingConfirmation &&
+                            provider.pendingToolName != null)
+                          ToolConfirmationCard(
+                            toolName: provider.pendingToolName!,
+                            arguments: provider.pendingToolArgs ?? {},
+                            onApprove: () =>
+                                provider.confirmToolAction(true),
+                            onDecline: () =>
+                                provider.confirmToolAction(false),
+                          ),
+
+                        // Input bar
+                        _InputBar(
+                          controller: _textController,
+                          focusNode: _focusNode,
+                          isGenerating: provider.isGenerating,
+                          onSend: () => _sendMessage(provider),
+                          onStop: () => provider.stopGeneration(),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
         );
       },
     );
@@ -149,14 +180,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget _buildMessageList(AiChatProvider provider) {
     // Filter out tool results from display
     final displayMessages = provider.messages
-        .where((m) => m.role != ChatRole.toolResult && m.role != ChatRole.system)
+        .where(
+            (m) => m.role != ChatRole.toolResult && m.role != ChatRole.system)
         .toList();
 
     _scrollToBottom();
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.sm),
+      padding:
+          const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.sm),
       itemCount: displayMessages.length + (provider.isGenerating ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < displayMessages.length) {
@@ -195,7 +228,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  void _showDeleteModelDialog(BuildContext context, AiChatProvider provider) {
+  void _showDeleteModelDialog(
+      BuildContext context, AiChatProvider provider) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -225,13 +259,81 @@ class _AiChatScreenState extends State<AiChatScreen> {
 }
 
 // ---------------------------------------------------------------------------
+// API key setup card (shown when OpenAI is selected but no key configured)
+// ---------------------------------------------------------------------------
+
+class _ApiKeySetupCard extends StatelessWidget {
+  final VoidCallback onOpenSettings;
+
+  const _ApiKeySetupCard({required this.onOpenSettings});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.info.withOpacity(0.1),
+                borderRadius: AppRadii.borderRadiusFull,
+              ),
+              child: const Icon(
+                Icons.vpn_key_outlined,
+                size: 28,
+                color: AppColors.info,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'API Key Required',
+              style: AppTypography.headingMedium,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'You\'ve selected OpenAI as your AI provider. Enter your API key in Settings to start chatting.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: onOpenSettings,
+              icon: const Icon(Icons.settings_outlined, size: 18),
+              label: const Text('Open Settings'),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Your API key is stored only on this device.',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Empty state with suggestion chips
 // ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
+  final bool isOnline;
   final void Function(String text) onSuggestionTap;
 
-  const _EmptyState({required this.onSuggestionTap});
+  const _EmptyState({
+    this.isOnline = false,
+    required this.onSuggestionTap,
+  });
 
   static const _suggestions = [
     'How is my balance this week?',
@@ -255,8 +357,8 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: AppRadii.borderRadiusFull,
               ),
-              child: const Icon(
-                Icons.auto_awesome,
+              child: Icon(
+                isOnline ? Icons.cloud_outlined : Icons.auto_awesome,
                 size: 28,
                 color: AppColors.primary,
               ),
@@ -268,7 +370,9 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Ask about your habits, get personalized insights, or let me help you build a more balanced routine.',
+              isOnline
+                  ? 'Connected to OpenAI. Ask about your habits, get personalized insights, or let me help you build a more balanced routine.'
+                  : 'Ask about your habits, get personalized insights, or let me help you build a more balanced routine.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -466,7 +570,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
           ),
           const SizedBox(width: AppSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.only(
@@ -484,14 +589,13 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(3, (i) {
                     final delay = i * 0.2;
-                    final value =
-                        ((_controller.value + delay) % 1.0);
+                    final value = ((_controller.value + delay) % 1.0);
                     final opacity = value < 0.5
                         ? 0.3 + (value * 2 * 0.7)
                         : 1.0 - ((value - 0.5) * 2 * 0.7);
                     return Padding(
-                      padding: EdgeInsets.only(
-                          right: i < 2 ? 4 : 0),
+                      padding:
+                          EdgeInsets.only(right: i < 2 ? 4 : 0),
                       child: Opacity(
                         opacity: opacity,
                         child: Container(

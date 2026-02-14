@@ -51,6 +51,10 @@ class StorageService {
     await _settingsBox.put(key, value);
   }
 
+  Future<void> deleteSetting(String key) async {
+    await _settingsBox.delete(key);
+  }
+
   // Common settings accessors
 
   bool get use24HourFormat => getSetting<bool>('use24HourFormat', defaultValue: true) ?? true;
@@ -68,7 +72,7 @@ class StorageService {
   Future<void> setDefaultReminderOffsets(List<int> value) =>
       setSetting('defaultReminderOffsets', value);
 
-  // AI Model selection
+  // AI Model selection (local models)
   String? get selectedModelId => getSetting<String>('selectedModelId');
 
   Future<void> setSelectedModelId(String modelId) =>
@@ -79,6 +83,33 @@ class StorageService {
     if (id == null) return AppConstants.phi35Model; // Default
     return AppConstants.getModelById(id);
   }
+
+  // --- AI Provider Settings ---
+
+  /// Active AI provider: 'local' or 'openai'.
+  String get aiProvider =>
+      getSetting<String>('aiProvider', defaultValue: 'local') ?? 'local';
+
+  Future<void> setAiProvider(String provider) =>
+      setSetting('aiProvider', provider);
+
+  bool get isOnlineProvider => aiProvider == 'openai';
+
+  /// OpenAI API key (stored on device only).
+  String? get openaiApiKey => getSetting<String>('openaiApiKey');
+
+  Future<void> setOpenaiApiKey(String key) =>
+      setSetting('openaiApiKey', key);
+
+  Future<void> clearOpenaiApiKey() => deleteSetting('openaiApiKey');
+
+  /// OpenAI model name (default: gpt-4o-mini).
+  String get openaiModel =>
+      getSetting<String>('openaiModel', defaultValue: 'gpt-4o-mini') ??
+      'gpt-4o-mini';
+
+  Future<void> setOpenaiModel(String model) =>
+      setSetting('openaiModel', model);
 
   // --- AI Chat History ---
 

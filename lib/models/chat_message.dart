@@ -9,6 +9,9 @@ class ChatMessage {
   final Map<String, dynamic>? toolArgs;
   final bool? toolSuccess;
 
+  /// Identifier linking a tool call to its result (used by OpenAI API).
+  final String? toolCallId;
+
   ChatMessage({
     required this.id,
     required this.role,
@@ -17,6 +20,7 @@ class ChatMessage {
     this.toolName,
     this.toolArgs,
     this.toolSuccess,
+    this.toolCallId,
   }) : timestamp = timestamp ?? DateTime.now();
 
   ChatMessage copyWith({
@@ -31,6 +35,7 @@ class ChatMessage {
       toolName: toolName,
       toolArgs: toolArgs,
       toolSuccess: toolSuccess ?? this.toolSuccess,
+      toolCallId: toolCallId,
     );
   }
 
@@ -43,6 +48,7 @@ class ChatMessage {
       if (toolName != null) 'toolName': toolName,
       if (toolArgs != null) 'toolArgs': toolArgs,
       if (toolSuccess != null) 'toolSuccess': toolSuccess,
+      if (toolCallId != null) 'toolCallId': toolCallId,
     };
   }
 
@@ -57,6 +63,7 @@ class ChatMessage {
           ? Map<String, dynamic>.from(json['toolArgs'] as Map)
           : null,
       toolSuccess: json['toolSuccess'] as bool?,
+      toolCallId: json['toolCallId'] as String?,
     );
   }
 }

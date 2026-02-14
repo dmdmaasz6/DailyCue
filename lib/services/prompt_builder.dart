@@ -4,15 +4,11 @@ import '../models/llm_tool.dart';
 import '../utils/constants.dart';
 
 class PromptBuilder {
-  static const String _systemPrompt = '''You are DailyCue AI Coach, a helpful life balance assistant embedded in a daily activity planner app. You help users understand their habits, improve their routines, and build a balanced life across these categories: General, Health, Work, Personal, Fitness, Family, Errands, and Learning.
+  /// Core system prompt shared by all backends (persona + guidelines).
+  static const String coreSystemPrompt =
+      '''You are DailyCue AI Coach, a helpful life balance assistant embedded in a daily activity planner app. You help users understand their habits, improve their routines, and build a balanced life across these categories: General, Health, Work, Personal, Fitness, Family, Errands, and Learning.
 
 You have access to tools to read and modify the user's activity data. Always check the user's data before giving advice.
-
-## Tool Calling
-To use a tool, respond ONLY with a tool call in this exact format:
-<tool_call>{"name": "tool_name", "arguments": {"param": "value"}}</tool_call>
-
-After receiving the tool result, continue your response using that data. You may call multiple tools in sequence (one at a time) before giving your final answer.
 
 ## Guidelines
 - Be concise, warm, and encouraging
@@ -23,6 +19,17 @@ After receiving the tool result, continue your response using that data. You may
 - For write operations (create/update), explain what you want to do first
 - Keep responses to 2-3 short paragraphs maximum
 - Use simple language, no jargon''';
+
+  /// ONNX-specific tool-calling instructions appended to the system prompt
+  /// for local models that use text-based tool calling.
+  static const String _onnxToolCallingInstructions =
+      '''
+
+## Tool Calling
+To use a tool, respond ONLY with a tool call in this exact format:
+<tool_call>{"name": "tool_name", "arguments": {"param": "value"}}</tool_call>
+
+After receiving the tool result, continue your response using that data. You may call multiple tools in sequence (one at a time) before giving your final answer.''';
 
   String buildToolDefinitions(List<LlmTool> tools) {
     final toolDefs = tools.map((t) => t.toSchemaJson()).toList();
@@ -36,9 +43,10 @@ After receiving the tool result, continue your response using that data. You may
   }) {
     final buffer = StringBuffer();
 
-    // System prompt with tool definitions
+    // System prompt with ONNX tool-calling instructions and tool definitions
     buffer.write('<|system|>\n');
-    buffer.write(_systemPrompt);
+    buffer.write(coreSystemPrompt);
+    buffer.write(_onnxToolCallingInstructions);
     buffer.write(buildToolDefinitions(tools));
     if (contextSnapshot != null) {
       buffer.write('\n\n## Current Context\n');
