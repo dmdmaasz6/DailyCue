@@ -22,9 +22,6 @@ class OpenAiBackend extends LlmBackend {
   });
 
   @override
-  bool get requiresLocalModel => false;
-
-  @override
   Future<LlmGenerationResult> generate({
     required List<ChatMessage> messages,
     required List<LlmTool> tools,

@@ -4,7 +4,6 @@ import '../models/chat_message.dart';
 import '../providers/ai_chat_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/chat_message_bubble.dart';
-import '../widgets/model_download_card.dart';
 import 'settings_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -52,65 +51,27 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget build(BuildContext context) {
     return Consumer<AiChatProvider>(
       builder: (context, provider, _) {
-        final isOnline = provider.isOnlineMode;
-
-        // Determine what to show in the body
-        final bool showChat;
-        final bool showDownloadCard;
-        final bool showApiKeySetup;
-
-        if (isOnline) {
-          showApiKeySetup = !provider.isReady;
-          showDownloadCard = false;
-          showChat = !showApiKeySetup;
-        } else {
-          showApiKeySetup = false;
-          showDownloadCard =
-              provider.downloadState != ModelDownloadState.downloaded;
-          showChat = !showDownloadCard;
-        }
+        final showApiKeySetup = !provider.isReady;
 
         return Scaffold(
           appBar: AppBar(
             title: Row(
               children: [
                 Icon(
-                  isOnline ? Icons.cloud_outlined : Icons.auto_awesome,
+                  Icons.auto_awesome,
                   size: AppIconSizes.sm,
                   color: AppColors.primary,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Text(isOnline ? 'AI Coach (Online)' : 'AI Coach'),
+                const Text('AI Coach'),
               ],
             ),
             actions: [
-              if (showChat && provider.messages.isNotEmpty)
+              if (!showApiKeySetup && provider.messages.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _showClearDialog(context, provider),
                   tooltip: 'Clear chat',
-                ),
-              if (!isOnline &&
-                  provider.downloadState == ModelDownloadState.downloaded)
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'delete_model') {
-                      _showDeleteModelDialog(context, provider);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'delete_model',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_forever_outlined,
-                              size: 20, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text('Delete model'),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
             ],
           ),
@@ -125,53 +86,42 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     );
                   },
                 )
-              : showDownloadCard
-                  ? ModelDownloadCard(
-                      downloadState: provider.downloadState,
-                      downloadProgress: provider.downloadProgress,
-                      downloadError: provider.downloadError,
-                      currentFile: provider.currentFile,
-                      onDownload: () => provider.downloadModel(),
-                      onCancel: () => provider.cancelDownload(),
-                      onRetry: () => provider.downloadModel(),
-                    )
-                  : Column(
-                      children: [
-                        // Chat messages
-                        Expanded(
-                          child: provider.messages.isEmpty
-                              ? _EmptyState(
-                                  isOnline: isOnline,
-                                  onSuggestionTap: (text) {
-                                    _textController.text = text;
-                                    _sendMessage(provider);
-                                  },
-                                )
-                              : _buildMessageList(provider),
-                        ),
-
-                        // Confirmation card (if pending)
-                        if (provider.hasPendingConfirmation &&
-                            provider.pendingToolName != null)
-                          ToolConfirmationCard(
-                            toolName: provider.pendingToolName!,
-                            arguments: provider.pendingToolArgs ?? {},
-                            onApprove: () =>
-                                provider.confirmToolAction(true),
-                            onDecline: () =>
-                                provider.confirmToolAction(false),
-                          ),
-
-                        // Input bar
-                        _InputBar(
-                          controller: _textController,
-                          focusNode: _focusNode,
-                          isGenerating: provider.isGenerating,
-                          onSend: () => _sendMessage(provider),
-                          onStop: () => provider.stopGeneration(),
-                        ),
-                      ],
+              : Column(
+                  children: [
+                    // Chat messages
+                    Expanded(
+                      child: provider.messages.isEmpty
+                          ? _EmptyState(
+                              onSuggestionTap: (text) {
+                                _textController.text = text;
+                                _sendMessage(provider);
+                              },
+                            )
+                          : _buildMessageList(provider),
                     ),
+
+                    // Confirmation card (if pending)
+                    if (provider.hasPendingConfirmation &&
+                        provider.pendingToolName != null)
+                      ToolConfirmationCard(
+                        toolName: provider.pendingToolName!,
+                        arguments: provider.pendingToolArgs ?? {},
+                        onApprove: () =>
+                            provider.confirmToolAction(true),
+                        onDecline: () =>
+                            provider.confirmToolAction(false),
+                      ),
+
+                    // Input bar
+                    _InputBar(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      isGenerating: provider.isGenerating,
+                      onSend: () => _sendMessage(provider),
+                      onStop: () => provider.stopGeneration(),
+                    ),
+                  ],
+                ),
         );
       },
     );
@@ -227,39 +177,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
     );
   }
-
-  void _showDeleteModelDialog(
-      BuildContext context, AiChatProvider provider) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete AI model'),
-        content: const Text(
-            'This will remove the downloaded model (~2.3 GB) and clear chat history. You can re-download it later.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              provider.deleteModel();
-              provider.clearChat();
-              Navigator.pop(ctx);
-            },
-            child: Text(
-              'Delete',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
-// API key setup card (shown when OpenAI is selected but no key configured)
+// API key setup card (shown when no API key is configured)
 // ---------------------------------------------------------------------------
 
 class _ApiKeySetupCard extends StatelessWidget {
@@ -295,7 +216,7 @@ class _ApiKeySetupCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'You\'ve selected OpenAI as your AI provider. Enter your API key in Settings to start chatting.',
+              'Enter your OpenAI API key in Settings to start chatting with your AI Coach.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -327,11 +248,9 @@ class _ApiKeySetupCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
-  final bool isOnline;
   final void Function(String text) onSuggestionTap;
 
   const _EmptyState({
-    this.isOnline = false,
     required this.onSuggestionTap,
   });
 
@@ -357,8 +276,8 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: AppRadii.borderRadiusFull,
               ),
-              child: Icon(
-                isOnline ? Icons.cloud_outlined : Icons.auto_awesome,
+              child: const Icon(
+                Icons.auto_awesome,
                 size: 28,
                 color: AppColors.primary,
               ),
@@ -370,9 +289,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              isOnline
-                  ? 'Connected to OpenAI. Ask about your habits, get personalized insights, or let me help you build a more balanced routine.'
-                  : 'Ask about your habits, get personalized insights, or let me help you build a more balanced routine.',
+              'Ask about your habits, get personalized insights, or let me help you build a more balanced routine.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),

@@ -25,17 +25,10 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- AI Provider Settings ---
+  // --- OpenAI Settings ---
 
-  String get aiProvider => _storage.aiProvider;
-  bool get isOnlineProvider => _storage.isOnlineProvider;
   String? get openaiApiKey => _storage.openaiApiKey;
   String get openaiModel => _storage.openaiModel;
-
-  Future<void> setAiProvider(String provider) async {
-    await _storage.setAiProvider(provider);
-    notifyListeners();
-  }
 
   Future<void> setOpenaiApiKey(String key) async {
     await _storage.setOpenaiApiKey(key);

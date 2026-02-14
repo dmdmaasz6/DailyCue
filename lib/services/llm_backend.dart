@@ -19,7 +19,7 @@ class LlmGenerationResult {
 
 /// A parsed tool call from the LLM response.
 class LlmToolCallResult {
-  /// Unique identifier for this tool call (used by OpenAI, generated for ONNX).
+  /// Unique identifier for this tool call (used by the OpenAI API).
   final String id;
 
   /// Tool function name.
@@ -59,7 +59,4 @@ abstract class LlmBackend {
 
   /// Cancel any ongoing generation.
   Future<void> stopGeneration();
-
-  /// Whether this backend requires a local model to be downloaded and loaded.
-  bool get requiresLocalModel;
 }

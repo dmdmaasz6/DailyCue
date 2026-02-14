@@ -51,9 +51,6 @@ class LlmService {
   bool _isGenerating = false;
   bool get isGenerating => _isGenerating;
 
-  /// Whether the current backend requires a local model.
-  bool get requiresLocalModel => _backend.requiresLocalModel;
-
   LlmService({
     required LlmBackend backend,
     required ToolExecutor toolExecutor,

@@ -5,14 +5,9 @@ import 'providers/activity_provider.dart';
 import 'providers/ai_chat_provider.dart';
 import 'providers/settings_provider.dart';
 import 'app_shell.dart';
-import 'services/llm_backend.dart';
 import 'services/llm_service.dart';
-import 'services/model_manager.dart';
 import 'services/notification_service.dart';
-import 'services/onnx_backend.dart';
-import 'services/onnx_channel.dart';
 import 'services/openai_backend.dart';
-import 'services/prompt_builder.dart';
 import 'services/scheduler_service.dart';
 import 'services/storage_service.dart';
 import 'services/tool_executor.dart';
@@ -34,8 +29,6 @@ class DailyCueApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final schedulerService = SchedulerService(notificationService);
-
-    final modelManager = ModelManager();
 
     return MultiProvider(
       providers: [
@@ -59,43 +52,22 @@ class DailyCueApp extends StatelessWidget {
             final toolExecutor =
                 ToolExecutor(activityProvider: activityProvider);
 
-            // Create the ONNX backend (always available as fallback)
-            final onnxBackend = OnnxBackend(
-              onnx: OnnxChannel(),
-              promptBuilder: PromptBuilder(),
+            final apiKey = storageService.openaiApiKey;
+            final backend = OpenAiBackend(
+              apiKey: apiKey ?? '',
+              model: storageService.openaiModel,
             );
 
-            // Choose initial backend based on stored preference
-            final LlmBackend initialBackend;
-            if (storageService.isOnlineProvider) {
-              final apiKey = storageService.openaiApiKey;
-              if (apiKey != null && apiKey.isNotEmpty) {
-                initialBackend = OpenAiBackend(
-                  apiKey: apiKey,
-                  model: storageService.openaiModel,
-                );
-              } else {
-                // No API key yet — fall back to ONNX
-                initialBackend = onnxBackend;
-              }
-            } else {
-              initialBackend = onnxBackend;
-            }
-
             final llmService = LlmService(
-              backend: initialBackend,
+              backend: backend,
               toolExecutor: toolExecutor,
             );
 
-            final chatProvider = AiChatProvider(
+            return AiChatProvider(
               llmService: llmService,
-              modelManager: modelManager,
               storage: storageService,
               activityProvider: activityProvider,
             );
-            chatProvider.setOnnxBackend(onnxBackend);
-
-            return chatProvider;
           },
           update: (context, activityProvider, previous) {
             // AiChatProvider is long-lived; the ToolExecutor inside
